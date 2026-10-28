@@ -1,3 +1,28 @@
+diff --git a/src/bflib_guibtns.c b/src/bflib_guibtns.c
+index ac6e5cd..ebd73d0 100644
+--- a/src/bflib_guibtns.c
++++ b/src/bflib_guibtns.c
+@@ -29,6 +29,9 @@
+ #include "bflib_sound.h"
+ #include "bflib_keybrd.h"
+ #include "config_sounds.h"
++#ifdef KFX_ANDROID
++#include "frontmenu_select.h"
++#endif
+ #include "post_inc.h"
+ 
+ #ifdef __cplusplus
+@@ -55,6 +58,10 @@ TbBool check_if_pos_is_over_button(const struct GuiButton *gbtn, TbScreenPos pos
+ {
+     TbScreenPos x = gbtn->pos_x;
+     TbScreenPos y = gbtn->pos_y;
++#ifdef KFX_ANDROID
++    if (gbtn->draw_call == frontend_draw_campaign_select_button)
++        y = gbtn->scr_pos_y + (gbtn->height * 13 / 11 - gbtn->height) / 2;
++#endif
+     if ( (pos_x >= x) && (pos_x < x + gbtn->width)
+       && (pos_y >= y) && (pos_y < y + gbtn->height) )
+         return true;
 diff --git a/src/bflib_inputctrl.cpp b/src/bflib_inputctrl.cpp
 index ab9f8db..d71ac6a 100644
 --- a/src/bflib_inputctrl.cpp

@@ -58,6 +58,10 @@ def main():
     # indexed draw surface to an aspect-correct workload the CPU can sustain.
     replace("bflib_video.c", 'TbScreenModeInfo* mdinfo = LbScreenGetModeInfo(mode); // The desired mode has already been checked', 'TbScreenModeInfo* mdinfo = LbScreenGetModeInfo(mode); // The desired mode has already been checked\n#ifdef KFX_ANDROID\n    float android_scale = KfxAndroidRenderScale();\n    if (android_scale <= 0.0f) android_scale = mdinfo->Width > 1280 ? 1280.0f / mdinfo->Width : 1.0f;\n    width = (TbScreenCoord)(mdinfo->Width * android_scale);\n    height = (TbScreenCoord)(mdinfo->Height * android_scale);\n    if (width < 640) { height = (TbScreenCoord)(height * 640.0f / width); width = 640; }\n    width = (width + 3) & ~3;\n#endif')
     replace("bflib_video.c", '    struct SDL_Surface *draw_surface = SwDisplaySurfaceCreate(mdinfo->Width, mdinfo->Height);', '#ifdef KFX_ANDROID\n    TbScreenModeInfo android_draw_mode = *mdinfo;\n    android_draw_mode.Width = width;\n    android_draw_mode.Height = height;\n    mdinfo = &android_draw_mode;\n#endif\n    struct SDL_Surface *draw_surface = SwDisplaySurfaceCreate(mdinfo->Width, mdinfo->Height);')
+    # Campaign captions are drawn taller and lower than their desktop hit boxes.
+    # Align touch rows with the caption centres, retaining one row per choice.
+    replace("bflib_guibtns.c", '#include "config_sounds.h"', '#include "config_sounds.h"\n#ifdef KFX_ANDROID\n#include "frontmenu_select.h"\n#endif')
+    replace("bflib_guibtns.c", '    TbScreenPos y = gbtn->pos_y;\n    if ( (pos_x >= x)', '    TbScreenPos y = gbtn->pos_y;\n#ifdef KFX_ANDROID\n    if (gbtn->draw_call == frontend_draw_campaign_select_button)\n        y = gbtn->scr_pos_y + (gbtn->height * 13 / 11 - gbtn->height) / 2;\n#endif\n    if ( (pos_x >= x)')
     print("Applied Android input, camera, entry, presentation and scaling seams")
 
 
