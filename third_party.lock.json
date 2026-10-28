@@ -1,0 +1,46 @@
+{
+  "repositories": {
+    "keeperfx": {
+      "url": "https://github.com/dkfans/keeperfx.git",
+      "commit": "da038f03ab5f472dc570045f49cbfa76e7101ec4"
+    },
+    "keeperfx-launcher-qt": {
+      "url": "https://github.com/dkfans/keeperfx-launcher-qt.git",
+      "commit": "a9db21a0218ced4dae36cbe412f6fd153da78e7d"
+    },
+    "kfx-deps": {
+      "url": "https://github.com/dkfans/kfx-deps.git",
+      "commit": "4dcaf5dd5a6618049a41e8ae01eddfdfa2f13ffa"
+    },
+    "vcpkg": {
+      "url": "https://github.com/microsoft/vcpkg.git",
+      "commit": "15b12b99a227d51e21c86dffd40385439eac87a0"
+    },
+    "ghidra-lx-loader": {
+      "url": "https://github.com/yetmorecode/ghidra-lx-loader.git",
+      "commit": "60bae5199fdada5b3b825741a94bfbbe04cb7a5f"
+    },
+    "centijson": {
+      "url": "https://github.com/mity/centijson.git",
+      "commit": "8c7a5fb42d9f55044d60592809288164adb4ca95"
+    },
+    "enet6": {
+      "url": "https://github.com/SirLynix/enet6.git",
+      "commit": "bf0003fb0004b12ff1d2b0c51c7c7e9a0d2d7732"
+    },
+    "astronomy": {
+      "url": "https://github.com/cosinekitty/astronomy.git",
+      "commit": "865d3da7d8112bbc7911238052c6af4aaf877181"
+    },
+    "SDL": {
+      "url": "https://github.com/libsdl-org/SDL.git",
+      "commit": "829a65d769d935c4852f8159e964312c0957260a"
+    }
+  },
+  "archives": {
+    "lua-5.1.5": {
+      "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+      "sha256": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333"
+    }
+  }
+}

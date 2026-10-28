@@ -1,0 +1,17 @@
+diff --git a/src/main/java/yetmorecode/ghidra/lx/LinearLoader.java b/src/main/java/yetmorecode/ghidra/lx/LinearLoader.java
+index c0ce2bf..d18ef85 100644
+--- a/src/main/java/yetmorecode/ghidra/lx/LinearLoader.java
++++ b/src/main/java/yetmorecode/ghidra/lx/LinearLoader.java
+@@ -312,8 +312,10 @@ public abstract class LinearLoader extends AbstractLibrarySupportLoader {
+ 			r.setPointerIndex(pageOffset);
+ 			byte[] pageData;
+ 			var isLastPage = i == object.pageCount - 1;
+-			if (isLastObject && isLastPage) {
+-				pageData = r.readNextByteArray(header.lastPageSize);
++			// LE's short final page belongs to the final physical page, not
++			// necessarily the last object (later objects may be zero-filled BSS).
++			if (entry.getOffset() == header.pageCount) {
++				pageData = r.readNextByteArray(header.lastPageSize == 0 ? pageSize : header.lastPageSize);
+ 			} else {
+ 				pageData = r.readNextByteArray(pageSize);	
+ 			}
