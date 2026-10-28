@@ -2,7 +2,7 @@
 
 Newest block first. Evidence = command + observed output. Codex's state lives in `coordination/CODEX.md`.
 
-## CURRENT — 2026-10-29 04:25 KST
+## CURRENT — 2026-10-29 05:30 KST
 
 **Working on the phone (NX809J, Android 16), debug APK `org.keeperrecomped.app`:**
 | Feature | Evidence |
@@ -19,7 +19,9 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 
 **Fixed (Claude takeover, cb20f94):** level start (Lua loader exact-then-lowercase) and music (absolute runtime directory). Level 1 of the original campaign loads in the main APK; music plays; real one-finger drag pans.
 
-**Open (Codex):** briefing speech `.mp3` (SDL_mixer built without MP3); first tap on a new button often only hovers; thin campaign-list hit boxes.
+**Also fixed (Claude takeover):** MP3 briefing speech (sdl3-mixer overlay port with dr_mp3, 4fedcfb); Android Back = Escape (8e1249b, engine-log verified; in-level Options not re-checked because the phone re-locked).
+
+**Open:** thin campaign-list hit boxes (Codex, minor); in-level Back→Options visual check; SAF picker needs a real pick by the user. RedMagic **Game Space** auto-added the app (it is flagged as a game) and may cap its frame rate — check Game Space's per-game frame/refresh setting along with the display refresh setting.
 
 **FPS (OS-level, fixed `scripts/android/measure_fps.py`, main APK, level 1):** 60.2 FPS, p99 16.62 ms, max 16.63 ms — perfectly paced at the panel's current 60 Hz. The OS display policy decides the panel rate (`dumpsys SurfaceFlinger | grep displayManagerPolicy`: [60,60] now, [120,120] earlier); the game requests 144 Hz and the launcher writes FRAMES_PER_SECOND=144. 144 Hz needs the user's display setting (refresh_rate_mode auto → 144).
 

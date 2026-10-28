@@ -16,7 +16,9 @@
 
 > **Play Original today** runs the original campaign on the KeeperFX engine compiled for ARM64 — the "classic profile": only the original campaign is offered, no mods are loaded, and it keeps its own save games separate from Play KeeperFX. The separate recompilation of the original DOS executable is still in progress; the button's caption says which one you are getting.
 
-> **Frame rate:** the game asks for your screen's highest refresh rate (144 Hz on the NX809J), but Android decides the actual rate. If your phone's display refresh setting is on "auto", apps are usually held to 60 or 120 Hz; choose 144 Hz in the phone's display settings to let the game run at 144 FPS.
+> **Frame rate:** the game asks for your screen's highest refresh rate (144 Hz on the NX809J), but Android decides the actual rate. If your phone's display refresh setting is on "auto", apps are usually held to 60 or 120 Hz; choose 144 Hz in the phone's display settings to let the game run at 144 FPS. On RedMagic/Nubia phones, **Game Space** adds Keeper Recomped automatically and has its own per-game frame-rate setting; set it to the maximum there too.
+
+> **Back button:** in the game, Android Back works like the Escape key — it closes open panels, opens the Options menu (save, load, quit), and steps back through the main menus.
 
 ## Tabs
 | Tab | What it does |
