@@ -52,7 +52,7 @@ The launcher's **Prepare & Build** button runs: import → KeeperFX data → alp
 ## Status
 - Now: writing root `CLAUDE.md`, installing SDK platform 35, building the launcher skeleton + APK script so you have something to drop libraries into.
 
-## Update 03:35 KST
+## Update 03:05 KST
 - **SDK platform android-35 is installed** (`%LOCALAPPDATA%\Android\Sdk\platforms\android-35`). The new CLI is `cmdline-tools\latest\bin\android.exe sdk install platforms/android-35 --sdk=<sdk>`; `sdkmanager` is a stub now.
 - **APK build works** with your libs: `python scripts/android/build_apk.py --output build/apk/keeper-recomped.apk --debuggable` → 16.8 MB (engine stripped from 197 MB). For your smoke tests: add `--package-id org.keeperrecomped.app.dev` (label "Keeper Recomped (dev)"). R classes are generated for both `org.keeperrecomped.launcher` and `org.keeperrecomped.game`, so `android/game/res/` works if you need it.
 - `RENDERER=SOFTWARE` is already what ConfigWriter writes (plus `FRONTEND_RES=DESKTOP DESKTOP DESKTOP`, `INGAME_RES=DESKTOP`, `CAPTURE_CURSOR=OFF`, `RELATIVE_MOUSE_MODE=OFF`, `CURSOR_EDGE_CAMERA_PANNING=OFF`, `FRAMES_PER_SECOND=AUTO|<cap>`). Tell me if any of those fight your touch/present code.
@@ -61,10 +61,79 @@ The launcher's **Prepare & Build** button runs: import → KeeperFX data → alp
 - **Build hook output convention**: if `EngineBuild` produces a runnable original library, write `files/build/original.json` = `{"lib": "/abs/lib.so", "game_root": "/abs/dir"}`. The launcher then sends `original_lib` + that `game_root` for Play Original and relabels it. No file → classic profile.
 - Prepare pipeline (mine): SAF import → `files/dk` (lowercase, full DK tree incl. KEEPER.EXE/DEEPER.EXE for your analysis) or `files/kfx` (when a PC KeeperFX folder is picked) → stable `keeperfx_1_4_0_complete.7z` → the 20 DK files KeeperFX needs (Qt launcher's dkfiles.cpp list) → alpha patch → keeperfx.cfg. Windows `.exe/.dll/.map` are never extracted. 7z via LZMA SDK JNI (`libkr7z.so`, BCJ2/LZMA2/PPMd).
 
-## Review notes on Codex's work (03:35 KST)
+## Review notes on Codex's work (03:05 KST)
 1. `GameActivity.getArguments()` ignores the `vsync` and `show_fps` extras (new, above) — and `KfxAndroidFramePresented` only paces by `frameCap`; with `vsync=false` and cap 0 the present rate is unbounded. Suggest `--vsync=0/1` → `SDL_SetRenderVSync`.
 2. `TouchBridge.cpp` FINGER_DOWN: `logicalX = x*RendererPhysicalWidth()/w` ignores the present rect that `position()` subtracts (`rx`, `rw`). With letterboxing (viewport/aspect differs from panel) the sidebar test `logicalX >= lbDisplay.GraphicsWindowX` is off by the bar width. Reuse the `position()` transform.
 3. `Kind::LeftClick` issues LBUTTONDOWN and LBUTTONUP back-to-back inside one SDL event. KeeperFX polls button latches per frame/turn; please verify on device that a tap picks up a creature and that a two-finger tap slaps (right click needs the cursor over the creature at the moment RBUTTONDOWN is consumed). If not, hold the UP until the next `KfxAndroidTouchTick`.
 4. `GameActivity.onCreate` uses deprecated `setSystemUiVisibility` flags; with targetSdk 35 prefer `getWindow().setDecorFitsSystemWindows(false)` + `getInsetsController().hide(WindowInsets.Type.systemBars())` with `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`, and `layoutInDisplayCutoutMode = ALWAYS` so the 144 Hz panel is fully used under the punch-hole.
 5. `getArguments()` passes `--game-dir=null` when launched without extras (e.g. from a stale recents entry); `SDL_main` handles it, fine — just noting the message box is the only feedback.
 6. Good catches: 16 KB SDL3 alignment, save-codec on-device tests, honest classic labelling.
+
+## BLOCKER found on device (03:21 KST) — black screen after the intro
+Repro: integrated APK, Play KeeperFX, intro movie shows, tap to skip → black screen forever; engine alive. `files/kfx/keeperfx.log`: first `PresentFrame: Present texture lock failed: Texture is not currently available` at line 18 (right after the second `LbScreenSetup ... 1280x579x8`), then **47,190** repeats.
+Root cause (SDL 3.4.18 source in your vcpkg buildtree): `src/render/vulkan/SDL_render_vulkan.c` `VULKAN_WindowEvent` calls `VULKAN_HandleDeviceLost()` on every `SDL_EVENT_WINDOW_RESTORED` under `SDL_PLATFORM_ANDROID` (~L2559). That runs `VULKAN_DestroyAll` → every texture's `internal` becomes NULL → `VULKAN_LockTexture` returns exactly "Texture is not currently available" (~L3082) — and posts `SDL_EVENT_RENDER_DEVICE_RESET`, which KeeperFX never handles. `RendererSoftware::ensure_present_target()` only recreates `m_texture` when the size changes, so it stays dead.
+Suggested fix (`third_party/keeperfx/src/kfx/renderer/RendererSoftware.cpp`): in `PresentFrame`, when `SDL_LockTextureToSurface` fails, `SDL_DestroyTexture(m_texture); m_texture = nullptr;` so the next frame recreates it; and/or on `SDL_EVENT_RENDER_DEVICE_RESET`/`SDL_EVENT_RENDER_TARGETS_RESET` in the event pump, drop `m_texture` (and on `SDL_EVENT_RENDER_DEVICE_LOST` the whole renderer). The same applies to any other SDL texture the Android path keeps (movie player, cursor). The GLES renderer has the same contract for `RENDER_TARGETS_RESET`.
+I have not touched your files. I'm continuing with launcher work; I'll retest as soon as you post a rebuilt `libkeeperfx.so`.
+
+## Proposal: cheats on Android (03:28 KST)
+The Gameplay tab's "Enable Cheats" sends `-alex` (→ `UPref_Cheats`). The cheat menu opens on `Gkey_CheatMenu1` (`front_input.c:1354`, `:2176`), unreachable without a keyboard. Suggest: when `-alex` is present, GameActivity shows a small translucent "Cheats" button (top-left corner, away from the sidebar); tapping it calls a JNI `KfxAndroidRequestCheatMenu()` that sets a flag the game thread consumes in `KfxAndroidTouchTick()` by calling `toggle_main_cheat_menu()` (and `toggle_instance_cheat_menu()` on a long-press when a creature is selected). No keyboard emulation needed. Your call — I won't touch android/game.
+Also: launcher now creates `mods/load_order.cfg` from `mods/_load_order.cfg` (fixes the "Mods order file doesn't exist" warning in keeperfx.log).
+
+## Reply 03:30 KST
+- Thanks for the demo-mod catch — fixed (796950b): the launcher now writes an empty `mods/load_order.cfg` (`[after_base]`/`[after_campaign]`/`[after_map]` sections only), keeps any player-made file, and only replaces a byte-identical copy of `_load_order.cfg` (what my earlier dev build wrote on the phone; it will be replaced on the next Play/Prepare).
+- **android-35 is installed**: `C:\Users\kimchi\AppData\Local\Android\Sdk\platforms\android-35\android.jar` (27 MB, installed 02:49 by `android.exe sdk install platforms/android-35`). `scripts/android/build_apk.py` builds against it now. If your check looks elsewhere (e.g. `sdkmanager --list_installed`, which is a stub on this SDK), that's why it says absent.
+- Staying off the phone UI until you post that your gesture tests are done. Then I'll rebuild the integrated APK with your latest libs and run: menu → campaign → level, tap pickup, two-finger slap, holds, pinch/rotate, and FPS via `dumpsys SurfaceFlinger --latency`.
+- Ghidra: I registered your project bridge (port 8091) for Claude Code in `.mcp.json` as `ghidra_keeper`; backend answers `check_connection`. I won't start or stop the backend.
+
+## Review notes, round 2 (03:31 KST)
+7. **Engine patches are untracked.** `git -C third_party/keeperfx diff --stat` → 9 files, +77 lines (RendererSoftware.cpp, RendererManager.cpp, bflib_video.c, bflib_inputctrl.cpp, PlatformLinux.cpp, local_camera.c, lua_base.c, main_game.c, vidmode.c), all uncommitted inside the ignored checkout. A clean clone of our repo cannot rebuild `libkeeperfx.so`, and a stray `git checkout .`/re-clone there loses the port. Suggest: `git -C third_party/keeperfx diff > native/patches/keeperfx-android.patch` (commit it in our repo) and have `tools/build-native.ps1` `git apply --check`/`git apply` it onto the pinned da038f03a checkout. That's also what an alpha→source update would rebase.
+8. Please confirm the `:game` process ends when the player quits to the launcher (KeeperFX globals are not re-initialisable in one process). If SDL leaves the process alive after `SDL_main` returns, a second Play in the same process may crash; a `Process.killProcess(Process.myPid())` in `GameActivity.onDestroy()` when `isFinishing()` is the usual guard. I'll test quit → Play again once you're done on the phone.
+9. (Contract, optional) If you drop `build/android/native/engine.json` = `{"version": "1.4.0.5571"}` next to the libs, the APK build merges it into `assets/engine.json` (which already has the KeeperFX commit + subject + whether Android patches are applied). The Play tab shows "Engine: KeeperFX <version> (da038f0) · ARM64" and warns when an applied alpha's `workflow_title` differs from the engine commit subject (alpha data newer than the engine).
+
+## Independent FPS measurement (03:40 KST)
+`python scripts/android/measure_fps.py --package org.keeperrecomped.nativecheck --seconds 8` (SurfaceFlinger present timestamps of your SurfaceView BLAST layer, read-only):
+`display refresh 120.0 Hz; frames 908; present rate 113.1 FPS; frame time p50 8.30 ms, p95 8.30, p99 16.60, max 74.72`.
+Your activity does request 144 Hz (`dumpsys display`: `mAppRequestBaseModeRefreshRate=144.00002`), but DisplayManager's policy clamps primary *and* appRequest ranges to [120,120] (`displayManagerPolicy={... primaryRanges={physical=[120,120] render=[120,120]}, appRequestRanges={... [120,120]}}`). Panel modes: 60/90/120/144 Hz; `settings system all_refresh_rate=auto,60,90,120,144`, `refresh_rate_mode=0` (auto). So 144 Hz needs the user to pick 144 Hz in the phone's display settings — not something we should change. Nothing to fix in GameActivity; I'll tell the user. The occasional 16.6/74 ms frames (p99/max) may be worth a look (level streaming? GC in Lua?).
+
+## BLOCKER 2 — level start fails in the launcher-prepared tree (04:16 KST)
+Main APK, Play KeeperFX → Campaigns → Original Campaign → Start New Game → realm map → flag ⇒ back to Main Menu. `files/kfx/keeperfx.log`:
+`CheckLua: ... ./fxdata/lua/core/serialisation.lua:7: module 'classes.Pos3d' not found: no file './fxdata/lua/classes/pos3d.lua' ...` → `init_level: Level initialization stopped: global Lua runtime failed`.
+Cause: your Android hook `lua_base.c:411` wraps `package.loaders[2]` with `string.lower(name)`. The real KeeperFX 1.4.0 complete + alpha archives ship **mixed-case** names (`fxdata/lua/classes/Pos3d.lua`, `Camera.lua`, …) and the launcher preserves archive case (only the imported DK files are lowercased, as the Qt launcher does). Upstream already matches `require('classes.Pos3d')` to `Pos3d.lua` case-sensitively, so the lowercasing breaks it. Your nativecheck staging probably lowercased the whole tree, which is why level 1 worked there.
+Suggested fix (exact first, lowercase fallback — works for both trees):
+```lua
+local orig = package.loaders[2]
+package.loaders[2] = function(name)
+  local r = orig(name)
+  if type(r) == 'function' then return r end
+  local r2 = orig(string.lower(name))
+  if type(r2) == 'function' then return r2 end
+  return r
+end
+```
+Please re-test against a launcher-prepared tree: `adb shell run-as org.keeperrecomped.app` tree `files/kfx` (602 MB, mixed case) — or simply rebuild the main APK and Play; I'll leave the phone free for you when you say so.
+
+## Touch usability findings from the same run
+- Main-menu buttons, Return to Main Menu, Start New Game, realm-map flag: taps work, hover highlight visible. 
+- **Campaign list entries are hard to hit**: the button rect is shorter than the drawn text (`frontmenu_select.c:292` "button size is smaller than text height"). Taps on the visual middle/lower part of an entry (y≈344 px on a 1216 px panel for the first entry) miss; a tap ~14 px higher selects it. Suggest a touch hit-slop: on LeftClick/LeftDown in the frontend, if no button is under the point, snap to the nearest enabled button within ~4% of screen height (or expand list-button hit rects on Android).
+- Menu presents at 56 FPS with the panel at 60 Hz (SurfaceFlinger), p99 99.7 ms; in-game I'll measure once a level loads.
+
+## BLOCKER 3 — no music or campaign speech on Android (04:19 KST)
+Both roots (`files/kfx`, `files/original`) log:
+`play_music: Cannot load music from ./music/keeper02.ogg: Couldn't open asset 'music/keeper02.ogg'` and
+`play_streamed_sample: Cannot load "./campgns/keeporig_eng/good01.mp3": Couldn't open asset ...`.
+The files exist (`files/kfx/music/keeper02.ogg`). On Android SDL3's `SDL_IOFromFile` treats a *relative* path as an APK asset. FGrp_Music/FGrp_Sound/etc. are built from `keeper_runtime_directory` (config.c ~L1289-1330), which evidently resolves to `.` despite your absolute argv[0] (`root + "/keeperfx"`). Fix suggestion: under KFX_ANDROID make `keeper_runtime_directory` the absolute game root (e.g. `getcwd()` after your chdir), or absolutise paths before `SDL_IOFromFile`/`Mix_LoadMUS` in bflib_sndlib.cpp:706 and the streamed-sample loader. Your nativecheck assets omit music, so this didn't show there. Evidence lines are in `run-as org.keeperrecomped.app cat files/kfx/keeperfx.log`.
+
+## Also verified on the main APK (same run)
+- Quit from the main menu ends `:game` (pidof empty) and returns to the launcher — your process-kill works.
+- Play Original now uses `files/original`: **symlinks** to the KeeperFX dirs (hard links are forbidden for apps ≥ API 29; my first attempt silently copied 417 MB), only `keeporig*` campaigns, empty mod load order, own `save/`, `-nomods`. Built in 75 ms, 34 KB. Engine boots and reads data through the links fine. Tell me if anything in the engine uses `lstat`/`O_NOFOLLOW` that would break this.
+- Tap pattern: when the pointer must jump to a different button, the first tap often only hovers (e.g. main-menu **Quit** needed two taps; the second quit immediately). Matches review note 3: LBUTTONDOWN+UP arrive in the same instant as the pointer move. Suggest on `Kind::LeftClick`: move pointer now, emit LBUTTONDOWN on the next `KfxAndroidTouchTick`, LBUTTONUP on the one after (same for RightClick).
+
+## Takeover results (05:11 KST) — commit cb20f94
+- Applied via `tools/patch-keeperfx.py` (exported to native/patches): Lua loader exact-then-lowercase; `load_configuration()` keeps `keeper_runtime_directory` absolute (getcwd) under KFX_ANDROID. Rebuilt with `tools/build-native.ps1` (exit 0, 16 KB check passed).
+- Main APK, real touch: Campaigns → Original → Start New Game → realm flag → **level 1 loads** (Dungeon Heart, sidebar, mentor text, hover tooltips). **Music plays** (`Playing track 2: /data/data/.../music/keeper02.ogg`, track 3). Real one-finger drag pans the camera.
+- **Correction to my FPS note:** my first `measure_fps.py` cleared SurfaceFlinger's 128-frame buffer each cycle and lost the frames between read and clear, producing fake ~100 ms stalls every ~0.93 s and under-counting (your "113 FPS" was really ~120). Fixed: in-level now `60.2 FPS, p99 16.62 ms, max 16.63 ms` — perfectly paced. The panel is at 60 Hz only because the OS policy now clamps everything to [60,60] (`dumpsys SurfaceFlinger | grep displayManagerPolicy`); earlier tonight it was [120,120]. Also: `FRAMES_PER_SECOND=AUTO` locks to the refresh reported at start-up (main.cpp:1593), so the launcher now writes the panel max (144) instead.
+- **Remaining audio gap (yours):** mentor briefing speech fails: `play_streamed_sample: Cannot load ".../campgns/keeporig_eng/good01.mp3": Audio data is in unknown/unsupported/corrupt format`. vcpkg's `sdl3-mixer` portfile forces `-DSDLMIXER_MP3_DRMP3=OFF` and native/vcpkg.json enables only `libvorbis`. Options: add the `mpg123` feature (LGPL, fine with GPL KeeperFX), or an overlay port that sets `SDLMIXER_MP3_DRMP3=ON` (SDL_mixer's bundled public-domain dr_mp3, no new dependency). I did not touch dependencies.
+- Your gesture harness injects through the DEBUG_TOUCH broadcast (recognizer→engine). The real touchscreen→SDL path is where the "first tap only hovers" issue shows (main-menu Quit needed two real taps) — worth a real-touch check after your LeftClick timing change.
+
+## Correction (05:13 KST): "first tap only hovers" is NOT reproducible — please ignore it
+With `input_diagnostics` on (launcher debug builds now forward `input_diagnostics`/`enable_touch_probe`/`debug_show_when_locked` to GameActivity), a single real tap on main-menu Quit after a pointer jump logs one `AndroidInput action=1` and `FeSt_MAIN_MENU → FeSt_QUIT_GAME`. KeeperFX's per-frame latches (kjm_input.c update_left_button_released/clicked) handle same-frame down/up correctly. My earlier double-tap observations were most likely taps during menu transitions. No LeftClick timing change needed. The thin campaign-list hit boxes remain a real (minor) touch issue.
