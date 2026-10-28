@@ -56,9 +56,9 @@ foreach(LINE IN LISTS VERSION_LINES)
     set(${CMAKE_MATCH_1} "${CMAKE_MATCH_2}")
   endif()
 endforeach()
-set(BUILD_NUMBER ${VER_BUILD})
+set(BUILD_NUMBER 5571 CACHE STRING "Upstream Alpha build matching pinned source revision")
 set(PACKAGE_SUFFIX "Android ARM64")
-set(VER_STRING "${VER_MAJOR}.${VER_MINOR}.${VER_RELEASE}.${VER_BUILD} ${PACKAGE_SUFFIX}")
+set(VER_STRING "${VER_MAJOR}.${VER_MINOR}.${VER_RELEASE}.${BUILD_NUMBER} ${PACKAGE_SUFFIX}")
 set(GIT_REVISION "da038f03ab5f472dc570045f49cbfa76e7101ec4+android")
 configure_file("${KFX_ROOT}/ver_defs.h.in" "${CMAKE_BINARY_DIR}/generated/ver_defs.h")
 file(READ "${KFX_ROOT}/res/keeperfx_icon256-24bpp.png" ICON_HEX HEX)
@@ -80,7 +80,7 @@ target_link_directories(keeperfx PRIVATE ${FFMPEG_LIBRARY_DIRS})
 target_link_libraries(keeperfx PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer
   OpenAL::OpenAL CURL::libcurl ZLIB::ZLIB spng::spng_static
   ${FFMPEG_LIBRARIES} ${MINIZIP_LIBRARY} ${UPNP_LIBRARY} ${NATPMP_LIBRARY}
-  enet6 centijson centitoml astronomy lua51 glad android log dl m)
+  enet6 centijson centitoml astronomy lua51 glad android nativewindow log dl m)
 set_target_properties(keeperfx PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../build/android/native/arm64-v8a")
 
 option(KFX_ANDROID_SAVE_TESTS "Cross-compile the upstream save codec tests" ON)

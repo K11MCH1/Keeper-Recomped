@@ -1,0 +1,20 @@
+--- a/src/lgc.c
++++ b/src/lgc.c
+@@ -164,8 +164,15 @@
+     markobject(g, h->metatable);
+   mode = gfasttm(g, h->metatable, TM_MODE);
+   if (mode && ttisstring(mode)) {  /* is there a weak mode? */
+-    weakkey = (strchr(svalue(mode), 'k') != NULL);
+-    weakvalue = (strchr(svalue(mode), 'v') != NULL);
++    /* TString stores characters after its header allocation. Android's
++       fortified strchr infers a zero-sized subobject for the old ts+1 idiom.
++       Scan using the actual Lua string length, preserving NUL semantics. */
++    const char *modechars = svalue(mode);
++    size_t modelength = rawtsvalue(mode)->tsv.len;
++    for (size_t n = 0; n < modelength && modechars[n] != '\0'; ++n) {
++      weakkey |= modechars[n] == 'k';
++      weakvalue |= modechars[n] == 'v';
++    }
+     if (weakkey || weakvalue) {  /* is really weak? */
+       h->marked &= ~(KEYWEAK | VALUEWEAK);  /* clear bits */
+       h->marked |= cast_byte((weakkey << KEYWEAKBIT) |

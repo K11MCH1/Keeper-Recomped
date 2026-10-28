@@ -21,6 +21,12 @@ This document records verified work, not a claim that every requested milestone 
 - Lua/BitOp/registration/serialization regression suite executed on the phone: seven checks passed with Android FORTIFY enabled. A weak-table GC string scan was patched after an actual level-start crash.
 - Original DEEPER.EXE: all 2,342 recognized functions exported with zero decompiler failures.
 - Ghidra MCP live stdio verification passed: 260 tools and healthy project-specific backend on loopback port8091.
+- Original campaign level1 visibly runs through the ARM64 KeeperFX engine at1280x579 with Vulkan presentation. Sustained engine telemetry is about120FPS; an independent SurfaceFlinger sample reported113.1 presented FPS over8 seconds (p50/p95 frame time8.30ms).
+- Device display policy currently clamps the app to120Hz despite its144Hz request. No global phone refresh settings were changed.
+- Eight integrated gameplay touch checks passed: creature pickup, two-finger right-click drop, two-finger slap (Imp health75→73), pinch without rotation, rotation without zoom, pan, left hold, right hold. Snapshot aiming against moving creatures required retries; the report records them.
+- OpenAL initialized the actual OpenSL backend and loaded1068 sound/126 speech samples. Overnight testing used only the test app's sound gains set to0; global phone volume was preserved.
+- Engine, SDL3 and libc++ ELF segments pass16KB page alignment checks. `build/android/native/engine.json` records native version, source revision, ABI and library hashes.
+- Runtime fixes include Lua's case-sensitive module search after lowercase import, clean failure on missing global Lua init, consistent logical draw dimensions, and recreation of SDL presentation resources after device/target reset.
 
 ## Build commands
 1. `powershell -ExecutionPolicy Bypass -File tools/build-dependencies.ps1`

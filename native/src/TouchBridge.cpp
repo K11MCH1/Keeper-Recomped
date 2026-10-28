@@ -9,6 +9,16 @@
 #include "local_camera.h"
 #include "player_data.h"
 #include "engine_camera.h"
+#include "dungeon_data.h"
+#include "thing_data.h"
+#include "bflib_basics.h"
+#include "engine_render.h"
+#include "thing_list.h"
+#include "frontend.h"
+#include "gui_frontbtns.h"
+#include "bflib_inputctrl.h"
+#include <jni.h>
+#include <atomic>
 #include <algorithm>
 #include <cmath>
 
@@ -16,6 +26,14 @@ using namespace keeper::touch;
 static Gestures gestures;
 static float panX = 0, panY = 0, zoomDelta = 0, rotationDelta = 0;
 static uint64_t lastDrain = 0;
+static Uint32 presentationGeneration = 0;
+static uint64_t inputSnapshotAt = 0;
+static int inputThing = 0;
+static std::atomic<int> menuRequest{0};
+static std::atomic<bool> diagnosticSnapshot{false};
+extern "C" JNIEXPORT void JNICALL Java_org_keeperrecomped_game_GameActivity_requestMenu(JNIEnv*,jclass,jint action) { menuRequest.store(action); }
+extern "C" JNIEXPORT void JNICALL Java_org_keeperrecomped_game_TouchProbe_snapshot(JNIEnv*,jclass) { diagnosticSnapshot.store(true); }
+extern "C" Uint32 KfxAndroidPresentationGeneration(void) { return presentationGeneration; }
 
 extern "C" void KfxAndroidConfigureTouch(float slop, float pinch, float rotate) {
     gestures.configure({slop, pinch, rotate, 450});
@@ -41,6 +59,11 @@ static void button(unsigned action) { TbPoint delta{0,0}; mouseControl(action, &
 static void drain() {
     for (const auto& a : gestures.take()) {
         position(a.x,a.y);
+        if (a.kind!=Kind::Hover && KfxAndroidInputDiagnostics()) {
+            LbSyncLog("AndroidInput action=%d x=%.1f y=%.1f dx=%.4f dy=%.4f cursor=%ld,%ld target=%d\n",static_cast<int>(a.kind),a.x,a.y,a.dx,a.dy,static_cast<long>(lbDisplay.MMouseX),static_cast<long>(lbDisplay.MMouseY),local_state.local_thing_under_hand);
+            inputSnapshotAt=SDL_GetTicks()+350;
+            inputThing=local_state.local_thing_under_hand;
+        }
         switch (a.kind) {
         case Kind::LeftClick: button(MActn_LBUTTONDOWN); button(MActn_LBUTTONUP); break;
         case Kind::RightClick: button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP); break;
@@ -56,6 +79,10 @@ static void drain() {
     }
 }
 extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
+    if (e->type==SDL_EVENT_RENDER_DEVICE_RESET || e->type==SDL_EVENT_RENDER_TARGETS_RESET || e->type==SDL_EVENT_RENDER_DEVICE_LOST) {
+        presentationGeneration++;
+        return 0;
+    }
     if (e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WILL_ENTER_BACKGROUND || e->type == SDL_EVENT_FINGER_CANCELED) {
         gestures.cancel(); drain(); panX=panY=zoomDelta=rotationDelta=0; return 0;
     }
@@ -67,14 +94,41 @@ extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
         const auto* player = get_my_player();
         bool world = player && (get_local_view_type(player) == PVT_DungeonTop || get_local_view_type(player) == PVT_MapScreen);
         auto point=gamePosition(x,y);
-        gestures.setPanEnabled(world && point.x>=player->engine_window_x && point.x<player->engine_window_x+player->engine_window_width
-            && point.y>=player->engine_window_y && point.y<player->engine_window_y+player->engine_window_height);
+        gestures.setPanEnabled(world && point.x>=local_state.engine_window_x && point.x<local_state.engine_window_x+local_state.engine_window_width
+            && point.y>=local_state.engine_window_y && point.y<local_state.engine_window_y+local_state.engine_window_height);
         gestures.down(static_cast<int64_t>(e->tfinger.fingerID),x,y,SDL_GetTicks());
     } else if (e->type == SDL_EVENT_FINGER_UP) gestures.up(static_cast<int64_t>(e->tfinger.fingerID),x,y,SDL_GetTicks());
     else gestures.move(static_cast<int64_t>(e->tfinger.fingerID),x,y,SDL_GetTicks());
     drain(); return 1;
 }
-extern "C" void KfxAndroidTouchTick(void) { gestures.tick(SDL_GetTicks()); drain(); }
+extern "C" void KfxAndroidTouchTick(void) {
+    gestures.tick(SDL_GetTicks());drain();
+    if (diagnosticSnapshot.exchange(false) && KfxAndroidInputDiagnostics()) { inputSnapshotAt=SDL_GetTicks();inputThing=local_state.local_thing_under_hand; }
+    int request=menuRequest.exchange(0);
+    if (request==1) {
+        if (!local_state.camera.ready) lbUserQuit=1;
+        else if (a_menu_window_is_active()) turn_off_all_window_menus();
+        else fake_button_click(BID_OPTIONS);
+    } else if (request && local_state.camera.ready && KfxAndroidCheatsEnabled()) {
+        if(request==3) toggle_instance_cheat_menu(); else toggle_main_cheat_menu();
+    }
+    if (inputSnapshotAt && SDL_GetTicks()>=inputSnapshotAt && local_state.camera.ready) {
+        inputSnapshotAt=0;
+        auto* player=get_my_player();
+        const auto* dungeon=get_players_dungeon(player);
+        const auto* camera=get_local_active_camera(player);
+        const auto* thing=thing_get(inputThing);
+        LbSyncLog("AndroidInput snapshot hand=%d thing=%d health=%ld camera=%ld,%ld zoom=%d yaw=%d\n",dungeon_invalid(dungeon)?-1:dungeon->num_things_in_hand,inputThing,thing_is_invalid(thing)?-1L:static_cast<long>(thing->health),static_cast<long>(camera->mappos.x.val),static_cast<long>(camera->mappos.y.val),camera->zoom,camera->rotation_angle_x);
+        int id=get_thing_class_list_head(TCls_Creature);
+        for(int count=0;id>0 && count<16;count++) {
+            auto* creature=thing_get(id);if(thing_is_invalid(creature))break;
+            auto pos=creature->mappos;pos.z.val+=creature->clipbox_size_z/2;
+            int32_t sx=0,sy=0;
+            if (map_to_screen(&pos,&sx,&sy)) LbSyncLog("AndroidCreature id=%d owner=%d model=%d screen=%d,%d norm=%.4f,%.4f health=%ld\n",id,creature->owner,creature->model,sx,sy,sx/static_cast<double>(RendererPhysicalWidth()),sy/static_cast<double>(RendererPhysicalHeight()),static_cast<long>(creature->health));
+            id=creature->next_of_class;
+        }
+    }
+}
 extern "C" void KfxAndroidCameraInputs(float* x, float* y, float* z, float* r) {
     uint64_t now=SDL_GetTicks();
     float dt=lastDrain ? std::clamp((now-lastDrain)/1000.0f,.001f,.1f) : 1.f/60.f;

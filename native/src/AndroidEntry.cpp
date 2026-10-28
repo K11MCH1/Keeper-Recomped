@@ -1,6 +1,7 @@
 #include "AndroidRuntime.hpp"
 #include <SDL3/SDL_main.h>
 #include <android/log.h>
+#include <android/native_window.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -9,15 +10,35 @@
 #include <vector>
 #include <unistd.h>
 #include "platform.h"
+#include "bflib_basics.h"
+#include "keeperfx.hpp"
 static std::string presentation = "vulkan";
 static float renderScale = 0;
 static int frameCap = 0;
 static bool vsync = true, showFPS = false;
+static bool inputDiagnostics = false;
+static bool cheatsEnabled = false;
 static double measuredFPS = 0;
 extern "C" const char* KfxAndroidPresentationDriver(void) { return presentation.c_str(); }
 extern "C" float KfxAndroidRenderScale(void) { return renderScale; }
 extern "C" int KfxAndroidFrameCap(void) { return frameCap; }
 extern "C" int KfxAndroidVsync(void) { return vsync ? 1 : 0; }
+extern "C" int KfxAndroidInputDiagnostics(void) { return inputDiagnostics ? 1 : 0; }
+extern "C" int KfxAndroidCheatsEnabled(void) { return cheatsEnabled ? 1 : 0; }
+extern "C" void KfxAndroidConfigureWindow(SDL_Window* window) {
+    float rate=frameCap>0?static_cast<float>(frameCap):60.0f;
+    SDL_DisplayID display=SDL_GetDisplayForWindow(window);
+    if (!frameCap) {
+        int count=0;auto modes=SDL_GetFullscreenDisplayModes(display,&count);
+        for(int i=0;modes && i<count;i++)if(modes[i]->refresh_rate<=165.5f)rate=std::max(rate,modes[i]->refresh_rate);
+        SDL_free(modes);
+    }
+    auto* native=static_cast<ANativeWindow*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window),SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER,nullptr));
+    if(native) {
+        int result=ANativeWindow_setFrameRateWithChangeStrategy(native,rate,ANATIVEWINDOW_FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,ANATIVEWINDOW_CHANGE_FRAME_RATE_ALWAYS);
+        LbSyncLog("AndroidDisplay requested_refresh=%.2f result=%d\n",rate,result);
+    }
+}
 extern "C" void KfxAndroidDrawOverlay(SDL_Renderer* renderer) {
     if (!showFPS) return;
     float sx=1,sy=1;Uint8 r,g,b,a;
@@ -31,6 +52,7 @@ extern "C" void KfxAndroidDrawOverlay(SDL_Renderer* renderer) {
 }
 extern "C" void KfxAndroidFramePresented(void) {
     static uint64_t started=0, frames=0, last=0, overlayStart=0, overlayFrames=0;
+    static float detectedRefresh=0;
     uint64_t now=SDL_GetTicksNS();
     int cap=frameCap;
     if (!cap) {
@@ -45,11 +67,16 @@ extern "C" void KfxAndroidFramePresented(void) {
     last=now;
     if (!overlayStart) overlayStart=now;
     overlayFrames++;
-    if (now-overlayStart>=1000000000ULL) { measuredFPS=overlayFrames*1e9/(now-overlayStart);overlayStart=now;overlayFrames=0; }
+    if (now-overlayStart>=1000000000ULL) {
+        measuredFPS=overlayFrames*1e9/(now-overlayStart);overlayStart=now;overlayFrames=0;
+        const SDL_DisplayMode* mode=SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+        if(mode && std::fabs(mode->refresh_rate-detectedRefresh)>1) { detectedRefresh=mode->refresh_rate;redetect_screen_refresh_rate_for_draw(); }
+    }
     if (!started) started=now;
     frames++;
     if (now-started >= 5000000000ULL) {
         __android_log_print(ANDROID_LOG_INFO,"KeeperPerformance","present_fps=%.2f frames=%llu duration_ms=%llu backend=%s",frames*1e9/(now-started),static_cast<unsigned long long>(frames),static_cast<unsigned long long>((now-started)/1000000),presentation.c_str());
+        LbSyncLog("AndroidPerformance present_fps=%.2f frames=%llu duration_ms=%llu backend=%s\n",frames*1e9/(now-started),static_cast<unsigned long long>(frames),static_cast<unsigned long long>((now-started)/1000000),presentation.c_str());
         started=now;frames=0;
     }
 }
@@ -71,7 +98,8 @@ extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
         else if (arg.starts_with("--pinch-deadzone=")) pinch = std::clamp(std::strtof(value("--pinch-deadzone=").c_str(), nullptr), .02f, .25f);
         else if (arg.starts_with("--vsync=")) vsync=value("--vsync=")!="0";
         else if (arg.starts_with("--show-fps=")) showFPS=value("--show-fps=")=="1";
-        else values.push_back(arg);
+        else if (arg.starts_with("--input-diagnostics=")) inputDiagnostics=value("--input-diagnostics=")=="1";
+        else { if(arg=="-alex") cheatsEnabled=true; values.push_back(arg); }
     }
     if (root.empty() || root.front() != '/' || chdir(root.c_str()) != 0) {
         __android_log_print(ANDROID_LOG_ERROR, "KeeperAndroid", "Prepared game directory is unavailable");

@@ -9,3 +9,5 @@
 *.cmake text eol=lf
 *.ps1 text eol=lf
 *.bat text eol=crlf
+# Preserve the supplied analysis pack's exact manifest-checked payload bytes.
+CE-Ghidra-MCP-Pack/** -text

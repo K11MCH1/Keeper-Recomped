@@ -14,6 +14,10 @@ void KfxAndroidConfigureTouch(float slop, float pinch, float rotate);
 void KfxAndroidApplyCamera(void);
 void KfxAndroidFramePresented(void);
 void KfxAndroidDrawOverlay(SDL_Renderer* renderer);
+Uint32 KfxAndroidPresentationGeneration(void);
+int KfxAndroidInputDiagnostics(void);
+int KfxAndroidCheatsEnabled(void);
+void KfxAndroidConfigureWindow(SDL_Window* window);
 #ifdef __cplusplus
 }
 #endif
