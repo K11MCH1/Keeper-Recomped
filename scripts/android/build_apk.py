@@ -64,6 +64,34 @@ def build_kr7z(llvm, work, log):
     return out
 
 
+def engine_info(work, engine):
+    """Which KeeperFX source the packaged engine was built from, so the launcher can tell
+    when downloaded alpha data no longer matches it. An optional engine.json next to the
+    libraries (Codex) may add "version"."""
+    info = {'built': bool(engine)}
+    src = ROOT / 'third_party/keeperfx'
+    if (src / '.git').exists():
+        r = subprocess.run(['git', '-C', str(src), 'log', '-1', '--format=%H%n%s'], capture_output=True, text=True)
+        if r.returncode == 0 and '\n' in r.stdout:
+            info['commit'], info['title'] = r.stdout.strip().split('\n', 1)
+        r = subprocess.run(['git', '-C', str(src), 'status', '--porcelain', '--untracked-files=no'], capture_output=True, text=True)
+        info['android_patches'] = r.returncode == 0 and bool(r.stdout.strip())
+        ver = {}
+        mk = src / 'version.mk'
+        if mk.is_file():
+            for line in mk.read_text(encoding='utf-8').splitlines():
+                m = re.match(r'(VER_\w+)=(\d+)', line)
+                if m:
+                    ver[m.group(1)] = m.group(2)
+            info['version'] = '.'.join(ver.get(k, '0') for k in ('VER_MAJOR', 'VER_MINOR', 'VER_RELEASE'))
+    extra = ROOT / 'build/android/native/engine.json'
+    if extra.is_file():
+        info.update(json.loads(extra.read_text(encoding='utf-8')))
+    out = work / 'engine.json'
+    out.write_text(json.dumps(info, indent=1) + '\n', encoding='utf-8')
+    return out
+
+
 def needed(llvm, lib, log):
     dyn = run([llvm / f'bin/llvm-readelf{EXE}', '--dynamic', lib], log)
     return re.findall(r'\(NEEDED\).*?\[(.*?)\]', dyn)
@@ -138,7 +166,7 @@ def build(args):
          '--output', work / 'dex', *sorted((work / 'classes').rglob('*.class')), *jars], log)
 
     # Assets and licences.
-    extra = []
+    extra = [(engine_info(work, engine), 'assets/engine.json')]
     for assets in (LAUNCHER / 'assets', GAME / 'assets'):
         if assets.is_dir():
             for p in sorted(assets.rglob('*')):

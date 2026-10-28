@@ -274,6 +274,10 @@ public final class LauncherActivity extends Activity {
             o.put("folder", describeTree(prefs.getString("tree", null)));
             o.put("folder_new", prefs.getBoolean("tree_new", false));
             o.put("engine", GameLauncher.engineInstalled(this));
+            try (java.io.InputStream in = getAssets().open("engine.json")) {
+                o.put("engine_info", new JSONObject(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)));
+            } catch (Exception ignored) {
+            }
             o.put("original_build", GameLauncher.originalBuild(this) != null);
             o.put("build_hook_present", classExists(Prepare.BUILD_HOOK));
             o.put("kfx_ready", new File(Paths.kfx(this), "fxdata").isDirectory() && new File(Paths.kfx(this), "data/bluepal.dat").isFile());

@@ -63,7 +63,14 @@ const kr = {
     const kv = state.kfx_version;
     fact('KeeperFX', kv ? (kv === 'folder' ? 'from your folder' : kv) + (state.alpha_version ? ' + alpha ' + state.alpha_version : '') : 'not installed', kv ? 'ok' : '');
     fact('Channel', s.channel === 'ALPHA' ? 'Alpha patches' : 'Stable');
-    fact('Engine', s.engine ? 'ARM64 engine in this build' : 'not in this build yet', s.engine ? 'ok' : 'bad');
+    const ei = s.engine_info || {};
+    const engineName = 'KeeperFX ' + (ei.version || '') + (ei.commit ? ' (' + ei.commit.slice(0, 7) + ')' : '') + ' · ARM64';
+    fact('Engine', s.engine ? engineName : 'not in this build yet', s.engine ? 'ok' : 'bad');
+    // Alpha patches change data and configs only; the engine is the one compiled into this app.
+    if (s.engine && ei.title && state.alpha_title && state.alpha_title !== ei.title) {
+      fact('Note', 'Alpha ' + (state.alpha_version || '') + ' data is newer than this app\'s engine build. '
+        + 'Features that need engine changes arrive with an app update.', 'warn');
+    }
     if (state.last_error) fact('Last error', state.last_error, 'bad');
     $('facts').innerHTML = facts.join('');
 
