@@ -475,25 +475,10 @@ final class Prepare {
             if (!template.isFile() || !java.util.Arrays.equals(Files.readAllBytes(order.toPath()), Files.readAllBytes(template.toPath())))
                 return;
         }
-        String quiet = "; KeeperFX mods load order, created empty by the Keeper Recomped launcher.
-
-"
-                + "; Add a mod's folder name under a section to enable it; see _load_order.cfg for an example.
-
-
-
-"
-                + "[after_base]
-
-
-
-[after_campaign]
-
-
-
-[after_map]
-
-";
+        String nl = "\r\n";
+        String quiet = "; KeeperFX mods load order, created empty by the Keeper Recomped launcher." + nl
+                + "; Add a mod's folder name under a section to enable it; see _load_order.cfg for an example." + nl + nl
+                + "[after_base]" + nl + nl + "[after_campaign]" + nl + nl + "[after_map]" + nl;
         Files.write(order.toPath(), quiet.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
