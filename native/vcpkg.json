@@ -1,0 +1,14 @@
+{
+  "name": "keeper-recomped-native",
+  "version-string": "0.1.0",
+  "builtin-baseline": "15b12b99a227d51e21c86dffd40385439eac87a0",
+  "dependencies": [
+    { "name": "sdl3", "default-features": false, "features": ["vulkan"] },
+    { "name": "sdl3-image", "default-features": false, "features": ["png", "jpeg"] },
+    { "name": "sdl3-mixer", "default-features": false, "features": ["libvorbis"] },
+    { "name": "ffmpeg", "default-features": false, "features": ["avcodec", "avformat", "swresample"] },
+    { "name": "openal-soft", "default-features": false },
+    { "name": "curl", "default-features": false, "features": ["openssl", "websockets"] },
+    "zlib", "minizip", "libspng", "miniupnpc", "libnatpmp"
+  ]
+}

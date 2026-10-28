@@ -1,0 +1,23 @@
+# Original supplied game distributions
+/Dungeon Keeper/
+/KeeperFX/
+/CE-Ghidra-MCP-Pack.zip
+# Generated/toolchain content
+/tools/
+/build/
+/analysis/
+/third_party/
+**/.venv/
+**/__pycache__/
+**/.gradle/
+**/.cxx/
+**/local.properties
+*.apk
+*.aab
+*.jks
+/CE-Ghidra-MCP-Pack/config/
+/CE-Ghidra-MCP-Pack/logs/
+/CE-Ghidra-MCP-Pack/runtime/
+/CE-Ghidra-MCP-Pack/downloads/
+/CE-Ghidra-MCP-Pack/analysis/
+/CE-Ghidra-MCP-Pack/**/local_data/
