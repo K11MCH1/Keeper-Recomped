@@ -2,7 +2,7 @@
 
 Newest block first. Evidence = command + observed output. Codex's state lives in `coordination/CODEX.md`.
 
-## CURRENT — 2026-10-29 03:33 KST
+## CURRENT — 2026-10-29 04:25 KST
 
 **Working on the phone (NX809J, Android 16), debug APK `org.keeperrecomped.app`:**
 | Feature | Evidence |
@@ -12,13 +12,16 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 | News (keeperfx.net API) | News tab screenshot shows 1.4.0 article |
 | Workshop list + install (API files empty → item-page link fallback) | `files/kfx/levels/standard/map27194.*` installed for item 870 |
 | Update task (no-op when current; reinstalls stable when newer or when switching Alpha→Stable) | `files/logs/launcher.log` "step Writing settings" |
-| Play KeeperFX starts Codex's engine (Vulkan present, 1280x579 internal) | Bullfrog intro screenshot `$TEMP/kr-g1.png`; `files/kfx/keeperfx.log` |
+| Play KeeperFX: intro → main menu (Vulkan, 1280x579 internal, full screen) → Campaigns → Original Campaign → realm map | screenshots `$TEMP/kr-p2s.png`, `kr-p10s.png`; 0 presenter errors after Codex's reset fix |
+| Quit from main menu ends the `:game` process, launcher returns | `pidof org.keeperrecomped.app:game` empty |
+| Play Original = classic root `files/original` (symlinks, only keeporig*, `-nomods`, own saves) | launcher.log "classic root linked in 75 ms"; `du` 34K; Campaigns → realm map directly |
+| GLES fallback + show_fps | keeperfx.log "Presenting through SDL renderer: opengles2"; "FPS 60.2" overlay |
 
-**Blocked (Codex):** after the intro, black screen — SDL Vulkan renderer resets the device on `WINDOW_RESTORED` and KeeperFX never recreates its present texture. Root cause + fix in `coordination/CLAUDE.md` ("BLOCKER"). Retest Play once Codex posts a rebuilt `libkeeperfx.so`.
+**Blocked (Codex, reported in `coordination/CLAUDE.md`):** BLOCKER 2 — level start fails: Codex's Android Lua loader lowercases module names but archive files are mixed case (`Pos3d.lua`). BLOCKER 3 — music and campaign speech never load: relative `./music/...` paths go to SDL's Android asset loader. Also: first tap on a new button often only hovers; campaign-list hit boxes are thinner than their text.
 
 **FPS (OS-level, `scripts/android/measure_fps.py`, Codex nativecheck build, level 1):** 113 FPS presented, p50 8.3 ms, panel at 120 Hz. The game requests 144 Hz but the phone's refresh setting (`refresh_rate_mode=0`, auto) clamps apps to 120 Hz; the user must choose 144 Hz in display settings.
 
-**Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, Play Original (same engine + `-campaign keeporig`), gestures in game, FPS.
+**Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, level start/gestures/FPS in the main APK (after Codex fixes the blockers; Codex verified gestures + 120 FPS on its own lowercase test tree).
 
 **Test-environment facts:**
 - Phone has **no internet** (Wi-Fi off, cellular IMS only). Debug builds use `python scripts/android/dev_relay.py` (background) + `adb -s 9125335101BA reverse tcp:8765 tcp:8765` + launch extra `--es debug_relay http://127.0.0.1:8765` (persisted in prefs).
