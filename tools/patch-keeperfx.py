@@ -38,10 +38,17 @@ def main():
     # Expose SDL_main from the Android entry bridge, retaining desktop main.
     replace("kfx/platform/PlatformLinux.cpp", 'extern "C" int main(int argc, char *argv[])\n{\n    return kfxmain(argc, argv);\n}', '#ifndef KFX_ANDROID\nextern "C" int main(int argc, char *argv[])\n{\n    return kfxmain(argc, argv);\n}\n#endif')
     replace("kfx/platform/PlatformLinux.cpp", '#include <fnmatch.h>', '#include <fnmatch.h>\n#ifndef FNM_FILE_NAME\n#define FNM_FILE_NAME FNM_PATHNAME\n#endif')
-    # Android asset imports deliberately normalize case. Lua's own filesystem
-    # loader bypasses KeeperFX's case-insensitive file abstraction, so translate
-    # only its module filename lookup while preserving require/cache identities.
-    replace("lua_base.c", '    setLuaPath(Lvl_script);', '    setLuaPath(Lvl_script);\n#ifdef KFX_ANDROID\n    if (!CheckLua(Lvl_script, luaL_dostring(Lvl_script, "local original_loader=package.loaders[2]; package.loaders[2]=function(name) return original_loader(string.lower(name)) end"), "android_module_case")) { close_lua_script(); return false; }\n#endif')
+    # Lua's own filesystem loader bypasses KeeperFX's case-insensitive file
+    # abstraction. KeeperFX archives keep mixed-case names (fxdata/lua/classes/
+    # Pos3d.lua) while imported DK files are lowercased, so try the exact module
+    # name first and fall back to lowercase. (Claude, 2026-10-29: the earlier
+    # lowercase-only loader broke level start on launcher-prepared trees.)
+    replace("lua_base.c", '    setLuaPath(Lvl_script);', '    setLuaPath(Lvl_script);\n#ifdef KFX_ANDROID\n    if (!CheckLua(Lvl_script, luaL_dostring(Lvl_script, "local o=package.loaders[2]; package.loaders[2]=function(n) local r=o(n); if type(r)==\'function\' then return r end; local l=o(string.lower(n)); if type(l)==\'function\' then return l end; return r end"), "android_module_case")) { close_lua_script(); return false; }\n#endif')
+    # load_configuration() resets keeper_runtime_directory to "." and every data
+    # path is built from it; SDL3 on Android opens relative paths as APK assets,
+    # so music and streamed speech failed. Keep it absolute (the cwd is the game root).
+    replace("config_keeperfx.c", '#include <stdarg.h>', '#include <stdarg.h>\n#ifdef KFX_ANDROID\n#include <unistd.h>\n#endif')
+    replace("config_keeperfx.c", '  strcpy(keeper_runtime_directory,".");\n  // Config file variables', '#ifdef KFX_ANDROID\n  if (getcwd(keeper_runtime_directory, sizeof(keeper_runtime_directory)) == NULL)\n      strcpy(keeper_runtime_directory,".");\n#else\n  strcpy(keeper_runtime_directory,".");\n#endif\n  // Config file variables')
     replace("main_game.c", '    luascript_loaded = open_lua_script(get_selected_level_number());', '    luascript_loaded = open_lua_script(get_selected_level_number());\n#ifdef KFX_ANDROID\n    if (!luascript_loaded) { ERRORLOG("Level initialization stopped: global Lua runtime failed"); return false; }\n#endif')
     replace("vidmode.c", 'TbBool update_screen_mode_data(long width, long height)\n{', 'TbBool update_screen_mode_data(long width, long height)\n{\n#ifdef KFX_ANDROID\n  /* SDL window pixels and the indexed draw surface are separate sizes. */\n  width = lbDisplay.PhysicalScreenWidth;\n  height = lbDisplay.PhysicalScreenHeight;\n#endif')
     # Preserve native screen dimensions for the SDL window; reduce only the

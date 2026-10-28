@@ -74,6 +74,33 @@ index 30c325b..3e57d5d 100644
      struct SDL_Surface *draw_surface = SwDisplaySurfaceCreate(mdinfo->Width, mdinfo->Height);
      if (draw_surface == NULL) {
          ERRORLOG("Can't create draw surface for mode %d (%s): %s", (int)mode, mdinfo->Desc, SDL_GetError());
+diff --git a/src/config_keeperfx.c b/src/config_keeperfx.c
+index 521d1cf..66ad184 100644
+--- a/src/config_keeperfx.c
++++ b/src/config_keeperfx.c
+@@ -18,6 +18,9 @@
+ #include "config_keeperfx.h"
+ 
+ #include <stdarg.h>
++#ifdef KFX_ANDROID
++#include <unistd.h>
++#endif
+ #include "globals.h"
+ #include "bflib_basics.h"
+ #include "bflib_math.h"
+@@ -1249,7 +1252,12 @@ short load_configuration(void)
+   // Preparing config file name and checking the file
+   strcpy(install_info.inst_path,"");
+   // Set default runtime directory and load the config file
++#ifdef KFX_ANDROID
++  if (getcwd(keeper_runtime_directory, sizeof(keeper_runtime_directory)) == NULL)
++      strcpy(keeper_runtime_directory,".");
++#else
+   strcpy(keeper_runtime_directory,".");
++#endif
+   // Config file variables
+   const char* sname; // Filename
+   const char* fname; // Filepath
 diff --git a/src/kfx/platform/PlatformLinux.cpp b/src/kfx/platform/PlatformLinux.cpp
 index 19edf03..784d938 100644
 --- a/src/kfx/platform/PlatformLinux.cpp
@@ -214,7 +241,7 @@ index 8630c25..518f353 100644
          return;
      }
 diff --git a/src/lua_base.c b/src/lua_base.c
-index 387a3e7..2c53b73 100644
+index 387a3e7..c5dff26 100644
 --- a/src/lua_base.c
 +++ b/src/lua_base.c
 @@ -407,6 +407,9 @@ TbBool open_lua_script(LevelNumber lvnum)
@@ -222,7 +249,7 @@ index 387a3e7..2c53b73 100644
  
      setLuaPath(Lvl_script);
 +#ifdef KFX_ANDROID
-+    if (!CheckLua(Lvl_script, luaL_dostring(Lvl_script, "local original_loader=package.loaders[2]; package.loaders[2]=function(name) return original_loader(string.lower(name)) end"), "android_module_case")) { close_lua_script(); return false; }
++    if (!CheckLua(Lvl_script, luaL_dostring(Lvl_script, "local o=package.loaders[2]; package.loaders[2]=function(n) local r=o(n); if type(r)=='function' then return r end; local l=o(string.lower(n)); if type(l)=='function' then return l end; return r end"), "android_module_case")) { close_lua_script(); return false; }
 +#endif
  
      char* fname = prepare_file_fmtpath(FGrp_FxData, "lua/init.lua");

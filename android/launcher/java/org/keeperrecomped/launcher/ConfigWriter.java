@@ -47,7 +47,10 @@ final class ConfigWriter {
         v.put("DELTA_TIME", onOff(s.bool("delta_time")));
         v.put("TURNS_PER_SECOND", Integer.toString(s.integer("turns_per_second")));
         int fps = s.integer("fps_cap");
-        v.put("FRAMES_PER_SECOND", fps == 0 ? "AUTO" : Integer.toString(fps));
+        // Not AUTO: the engine would lock to whatever refresh the display reports at
+        // start-up (often 60 Hz on Android), and the OS then keeps the panel at 60.
+        int cap = fps > 0 ? fps : s.displayMaxHz;
+        v.put("FRAMES_PER_SECOND", cap > 0 ? Integer.toString(cap) : "0");
         v.put("MAX_ZOOM_DISTANCE", Integer.toString(s.integer("max_zoom")));
         v.put("PARCHMENT_MAP_FADE", onOff(s.bool("parchment_map_fade")));
         v.put("CENSORSHIP", onOff(s.bool("censorship")));

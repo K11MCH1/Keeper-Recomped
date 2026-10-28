@@ -53,6 +53,7 @@ def main():
     p.add_argument('--serial', default='9125335101BA')
     p.add_argument('--package', default='org.keeperrecomped.app')
     p.add_argument('--seconds', type=float, default=10)
+    p.add_argument('--gaps', type=float, default=0, help='also list frame gaps longer than this many ms')
     a = p.parse_args()
     layer = find_layer(a.serial, a.package)
     if not layer:
@@ -60,11 +61,18 @@ def main():
         return 1
     seen, period = set(), 0
     end = time.time() + a.seconds
+    # SurfaceFlinger keeps the last 128 frames (0.89 s at 144 Hz). Read that window
+    # often and union the timestamps; never clear it, or frames between a read and
+    # the next clear are lost and show up as fake stalls.
     while time.time() < end:
-        adb(a.serial, 'dumpsys', 'SurfaceFlinger', '--latency-clear', f'"{layer}"')
-        time.sleep(0.8)  # SurfaceFlinger keeps the last 128 frames
         period, presents = sample(a.serial, layer)
         seen.update(presents)
+        time.sleep(0.3)
+    times_all = sorted(seen)
+    if times_all:
+        # Drop frames from before the measurement window (older buffer contents).
+        newest = times_all[-1]
+        seen = {t for t in times_all if newest - t <= a.seconds * 1e9}
     times = sorted(seen)
     if len(times) < 3:
         print(f'layer {layer}: too few frames ({len(times)})')
@@ -76,6 +84,9 @@ def main():
     print(f'layer: {layer}')
     print(f'display refresh: {refresh:.1f} Hz; frames: {len(times)}')
     print(f'present rate: {fps:.1f} FPS; frame time ms p50 {q[49]:.2f}, p95 {q[94]:.2f}, p99 {q[98]:.2f}, max {max(deltas):.2f}')
+    if a.gaps:
+        long = [((c - times[0]) / 1e9, (b - c) / 1e6) for c, b in zip(times, times[1:]) if (b - c) / 1e6 > a.gaps]
+        print('gaps (s since start, ms): ' + ', '.join(f'{t:.2f}:{d:.0f}' for t, d in long))
     return 0
 
 

@@ -139,8 +139,20 @@ final class Settings {
 
     private final SharedPreferences prefs;
 
+    /** Highest refresh rate the built-in screen supports (0 if unknown), for "Display maximum". */
+    final int displayMaxHz;
+
     Settings(Context context) {
         prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        int hz = 0;
+        try {
+            android.view.Display d = context.getSystemService(android.hardware.display.DisplayManager.class)
+                    .getDisplay(android.view.Display.DEFAULT_DISPLAY);
+            for (android.view.Display.Mode m : d.getSupportedModes())
+                hz = Math.max(hz, Math.round(m.getRefreshRate()));
+        } catch (RuntimeException ignored) {
+        }
+        displayMaxHz = hz;
     }
 
     String get(String key) {
