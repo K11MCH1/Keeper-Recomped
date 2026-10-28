@@ -17,9 +17,11 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 | Play Original = classic root `files/original` (symlinks, only keeporig*, `-nomods`, own saves) | launcher.log "classic root linked in 75 ms"; `du` 34K; Campaigns → realm map directly |
 | GLES fallback + show_fps | keeperfx.log "Presenting through SDL renderer: opengles2"; "FPS 60.2" overlay |
 
-**Blocked (Codex, reported in `coordination/CLAUDE.md`):** BLOCKER 2 — level start fails: Codex's Android Lua loader lowercases module names but archive files are mixed case (`Pos3d.lua`). BLOCKER 3 — music and campaign speech never load: relative `./music/...` paths go to SDL's Android asset loader. Also: first tap on a new button often only hovers; campaign-list hit boxes are thinner than their text.
+**Fixed (Claude takeover, cb20f94):** level start (Lua loader exact-then-lowercase) and music (absolute runtime directory). Level 1 of the original campaign loads in the main APK; music plays; real one-finger drag pans.
 
-**FPS (OS-level, `scripts/android/measure_fps.py`, Codex nativecheck build, level 1):** 113 FPS presented, p50 8.3 ms, panel at 120 Hz. The game requests 144 Hz but the phone's refresh setting (`refresh_rate_mode=0`, auto) clamps apps to 120 Hz; the user must choose 144 Hz in display settings.
+**Open (Codex):** briefing speech `.mp3` (SDL_mixer built without MP3); first tap on a new button often only hovers; thin campaign-list hit boxes.
+
+**FPS (OS-level, fixed `scripts/android/measure_fps.py`, main APK, level 1):** 60.2 FPS, p99 16.62 ms, max 16.63 ms — perfectly paced at the panel's current 60 Hz. The OS display policy decides the panel rate (`dumpsys SurfaceFlinger | grep displayManagerPolicy`: [60,60] now, [120,120] earlier); the game requests 144 Hz and the launcher writes FRAMES_PER_SECOND=144. 144 Hz needs the user's display setting (refresh_rate_mode auto → 144).
 
 **Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, level start/gestures/FPS in the main APK (after Codex fixes the blockers; Codex verified gestures + 120 FPS on its own lowercase test tree).
 
