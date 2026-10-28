@@ -114,7 +114,7 @@ const kr = {
   },
 
   onUpdate(u) {
-    $('updateText').textContent = 'Alpha patch ' + u.version + ' is available' + (u.title ? ' — ' + u.title : '');
+    $('updateText').textContent = u.version + ' is available' + (u.title ? ' — ' + u.title : '');
     $('updateBanner').classList.remove('hidden');
   },
 };

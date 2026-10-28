@@ -141,36 +141,8 @@ final class Prepare {
             throw new IOException("Choose your Dungeon Keeper folder first.");
         }
 
-        if (!kfxFromFolder) {
-            JSONObject stable;
-            try {
-                stable = api.stable();
-            } catch (IOException e) {
-                if (new File(kfx, "fxdata").isDirectory()) {
-                    AppLog.w("offline, keeping installed KeeperFX: " + e);
-                    stable = null;
-                } else {
-                    throw new IOException("Cannot reach keeperfx.net to download KeeperFX: " + e.getMessage());
-                }
-            }
-            if (stable != null && !(stable.optString("version").equals(state.optString("kfx_version"))
-                    && new File(kfx, "fxdata").isDirectory())) {
-                String url = stable.getString("download_url");
-                long size = stable.optLong("size_in_bytes", -1);
-                File archive = new File(Paths.downloads(ctx), fileName(url));
-                step(25, 58, "Downloading " + stable.optString("name", "KeeperFX"));
-                Net.download(url, archive, size, (done, total) -> {
-                    emit(total > 0 ? (double) done / total : 0, mb(done) + " / " + (total > 0 ? mb(total) : "?"));
-                    return !cancelled;
-                });
-                step(58, 72, "Installing " + stable.optString("name", "KeeperFX"));
-                extract7z(archive, kfx, null);
-                state = State.load(ctx);
-                state.put("kfx_version", stable.optString("version")).put("alpha_version", "");
-                State.save(ctx, state);
-                discard(archive);
-            }
-        }
+        if (!kfxFromFolder)
+            installStable(25, 72);
 
         step(72, 74, "Adding the original game files");
         copyDkSubset(dk, kfx);
@@ -190,6 +162,45 @@ final class Prepare {
         State.save(ctx, state);
         base = 100; span = 0; label = "Ready";
         emit(1, null);
+    }
+
+    /**
+     * The stable "complete" release, when it is newer than the installed one, or
+     * when the Stable channel must undo a previously applied alpha patch.
+     */
+    void installStable(int from, int to) throws Exception {
+        File kfx = Paths.kfx(ctx);
+        JSONObject state = State.load(ctx);
+        JSONObject stable;
+        try {
+            stable = api.stable();
+        } catch (IOException e) {
+            if (new File(kfx, "fxdata").isDirectory()) {
+                AppLog.w("offline, keeping installed KeeperFX: " + e);
+                return;
+            }
+            throw new IOException("Cannot reach keeperfx.net to download KeeperFX: " + e.getMessage());
+        }
+        boolean current = stable.optString("version").equals(state.optString("kfx_version")) && new File(kfx, "fxdata").isDirectory();
+        boolean undoAlpha = "STABLE".equals(settings.get("release_channel")) && !state.optString("alpha_version").isEmpty();
+        if (current && !undoAlpha)
+            return;
+        if (settings.bool("backup_saves"))
+            backupSaves(kfx);
+        String url = stable.getString("download_url");
+        File archive = new File(Paths.downloads(ctx), fileName(url));
+        int mid = from + (to - from) * 7 / 10;
+        step(from, mid, "Downloading " + stable.optString("name", "KeeperFX"));
+        Net.download(url, archive, stable.optLong("size_in_bytes", -1), (done, total) -> {
+            emit(total > 0 ? (double) done / total : 0, mb(done) + " / " + (total > 0 ? mb(total) : "?"));
+            return !cancelled;
+        });
+        step(mid, to, "Installing " + stable.optString("name", "KeeperFX"));
+        extract7z(archive, kfx, null);
+        state = State.load(ctx);
+        state.put("kfx_version", stable.optString("version")).put("alpha_version", "").put("alpha_title", "");
+        State.save(ctx, state);
+        discard(archive);
     }
 
     /** The alpha patch on top of the installed stable release, when it is newer. */
@@ -226,8 +237,11 @@ final class Prepare {
         task = "update";
         if (!new File(Paths.kfx(ctx), "fxdata").isDirectory())
             throw new IOException("Prepare the game first.");
+        if (!State.load(ctx).optBoolean("kfx_from_folder"))
+            installStable(0, 60);
+        copyDkSubset(Paths.dk(ctx), Paths.kfx(ctx));
         if ("ALPHA".equals(settings.get("release_channel")))
-            applyAlpha(0, 95);
+            applyAlpha(60, 95);
         step(95, 100, "Writing settings");
         fromTemplates(Paths.kfx(ctx));
         ConfigWriter.write(Paths.kfx(ctx), settings);

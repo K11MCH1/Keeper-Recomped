@@ -198,8 +198,7 @@ public final class LauncherActivity extends Activity {
     }
 
     private void checkForUpdate() {
-        if (!settings.bool("check_updates") || !settings.bool("website_integration")
-                || !"ALPHA".equals(settings.get("release_channel")))
+        if (!settings.bool("check_updates") || !settings.bool("website_integration"))
             return;
         JSONObject st = State.load(this);
         if (!st.optBoolean("prepared"))
@@ -210,11 +209,25 @@ public final class LauncherActivity extends Activity {
             return;
         io.execute(() -> {
             try {
-                JSONObject alpha = new KfxApi(this).alpha();
+                KfxApi api = new KfxApi(this);
+                JSONObject state = State.load(this);
+                String found = null, title = "";
+                String installed = state.optString("kfx_version");
+                if (!state.optBoolean("kfx_from_folder")) {
+                    JSONObject stable = api.stable();
+                    if (!stable.optString("version").equals(installed))
+                        found = stable.optString("name", "KeeperFX " + stable.optString("version"));
+                }
+                if (found == null && "ALPHA".equals(settings.get("release_channel"))) {
+                    JSONObject alpha = api.alpha();
+                    if (!alpha.optString("version").equals(state.optString("alpha_version"))) {
+                        found = "Alpha patch " + alpha.optString("version");
+                        title = alpha.optString("workflow_title");
+                    }
+                }
                 prefs.edit().putLong("last_update_check", System.currentTimeMillis()).apply();
-                String version = alpha.optString("version");
-                if (!version.isEmpty() && !version.equals(State.load(this).optString("alpha_version"))) {
-                    send(new JSONObject().put("version", version).put("title", alpha.optString("workflow_title")), "update");
+                if (found != null) {
+                    send(new JSONObject().put("version", found).put("title", title), "update");
                     if (settings.bool("auto_update") && !PrepareService.isRunning())
                         PrepareService.start(this, new Intent().putExtra(PrepareService.EXTRA_TASK, "update"));
                 }
