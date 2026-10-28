@@ -32,6 +32,20 @@ index ab9f8db..d71ac6a 100644
  
      return (lbUserQuit < 1);
  }
+diff --git a/src/bflib_sndlib.cpp b/src/bflib_sndlib.cpp
+index d480a6c..22cb405 100644
+--- a/src/bflib_sndlib.cpp
++++ b/src/bflib_sndlib.cpp
+@@ -17,6 +17,9 @@
+ 
+ // Single-header MP3 decoder (no external DLL dependency)
+ #define DR_MP3_IMPLEMENTATION
++#ifdef KFX_ANDROID
++#define DRMP3_API static
++#endif
+ #include "../deps/dr_mp3.h"
+ #include <memory>
+ #include <vector>
 diff --git a/src/bflib_video.c b/src/bflib_video.c
 index 30c325b..3e57d5d 100644
 --- a/src/bflib_video.c

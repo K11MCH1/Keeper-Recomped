@@ -47,7 +47,10 @@ def main():
     # load_configuration() resets keeper_runtime_directory to "." and every data
     # path is built from it; SDL3 on Android opens relative paths as APK assets,
     # so music and streamed speech failed. Keep it absolute (the cwd is the game root).
-    replace("config_keeperfx.c", '#include <stdarg.h>', '#include <stdarg.h>\n#ifdef KFX_ANDROID\n#include <unistd.h>\n#endif')
+    # SDL_mixer's dr_mp3 (enabled for MP3 campaign briefings, native/ports/sdl3-mixer)
+    # and KeeperFX's own copy are both linked statically; keep KeeperFX's private.
+    replace("bflib_sndlib.cpp", '#define DR_MP3_IMPLEMENTATION\n#include "../deps/dr_mp3.h"', '#define DR_MP3_IMPLEMENTATION\n#ifdef KFX_ANDROID\n#define DRMP3_API static\n#endif\n#include "../deps/dr_mp3.h"')
+    replace("config_keeperfx.c", '#include <stdarg.h>','#include <stdarg.h>\n#ifdef KFX_ANDROID\n#include <unistd.h>\n#endif')
     replace("config_keeperfx.c", '  strcpy(keeper_runtime_directory,".");\n  // Config file variables', '#ifdef KFX_ANDROID\n  if (getcwd(keeper_runtime_directory, sizeof(keeper_runtime_directory)) == NULL)\n      strcpy(keeper_runtime_directory,".");\n#else\n  strcpy(keeper_runtime_directory,".");\n#endif\n  // Config file variables')
     replace("main_game.c", '    luascript_loaded = open_lua_script(get_selected_level_number());', '    luascript_loaded = open_lua_script(get_selected_level_number());\n#ifdef KFX_ANDROID\n    if (!luascript_loaded) { ERRORLOG("Level initialization stopped: global Lua runtime failed"); return false; }\n#endif')
     replace("vidmode.c", 'TbBool update_screen_mode_data(long width, long height)\n{', 'TbBool update_screen_mode_data(long width, long height)\n{\n#ifdef KFX_ANDROID\n  /* SDL window pixels and the indexed draw surface are separate sizes. */\n  width = lbDisplay.PhysicalScreenWidth;\n  height = lbDisplay.PhysicalScreenHeight;\n#endif')
