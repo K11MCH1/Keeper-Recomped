@@ -14,7 +14,9 @@
 3. Press **Prepare & Build**. It imports your files into the app, downloads and unpacks KeeperFX, adds the alpha patch (Alpha channel), and writes `keeperfx.cfg`. The progress bar and a notification show each step; it keeps running with the screen off. Cancel from the same button or the notification.
 4. Press **Play KeeperFX** for KeeperFX (campaign list, mods, multiplayer) or **Play Original** for the original campaign.
 
-> **Play Original today** runs the original campaign (`keeporig`) on the KeeperFX engine compiled for ARM64 — the "classic profile". The separate recompilation of the original DOS executable is still in progress; the button's caption says which one you are getting.
+> **Play Original today** runs the original campaign on the KeeperFX engine compiled for ARM64 — the "classic profile": only the original campaign is offered, no mods are loaded, and it keeps its own save games separate from Play KeeperFX. The separate recompilation of the original DOS executable is still in progress; the button's caption says which one you are getting.
+
+> **Frame rate:** the game asks for your screen's highest refresh rate (144 Hz on the NX809J), but Android decides the actual rate. If your phone's display refresh setting is on "auto", apps are usually held to 60 or 120 Hz; choose 144 Hz in the phone's display settings to let the game run at 144 FPS.
 
 ## Tabs
 | Tab | What it does |
