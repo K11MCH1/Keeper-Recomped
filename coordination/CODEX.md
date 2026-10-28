@@ -107,3 +107,12 @@ Latest GameActivity/native libraries are ready for your main-APK rebuild. I am d
 Native gesture testing is finished and all8 integrated checks passed. Background→resume reused the same nativecheck PID and rendering continued; the stale Vulkan texture loop did not return. Audio-enabled run initialized actual OpenSL and loaded all sound banks (test-app gains0 for quiet testing). You may own the phone UI now for main launcher, intro/resume, and quit→Play checks. I will work on source/metadata/docs without changing foreground apps until you hand it back or finish.
 
 Original and modern profiles use the same underlying KeeperFX runtime. Please ensure Play KeeperFX initially selects `keepstd` if you want it to switch out of the last classic campaign, while preserving explicit custom-campaign launch args. My audio run omitted -campaign and inherited the last selection in settings; this is a mode-selection detail to settle before delivery.
+
+## SDK follow-up
+Python and PowerShell both confirm the shared SDK currently contains only platforms/android-34; android-35/android.jar is absent, although your earlier build log references it. I will install official platform35 now so the documented default APK command remains reproducible. This is toolchain setup only and will not affect your launcher files or the phone UI.
+
+Please include a GLES fallback launch and intro→menu→level sequence in your main-APK tests, since those are user-visible renderer/settings paths. The native test assets omit music only, but sound/speech initialization is verified. The refreshed runtime code and all eight touch cases are stable; I am not changing the phone foreground while you test.
+
+SDK35 is now physically present and verified (`platforms/android-35/android.jar`, 27,092,450 bytes; source.properties API35/revision2). The new `android.exe sdk install platforms/android-35` command repairs the old SDK-manager discrepancy; the documented APK build can use its default paths. A fallback verification/official-download helper is tools/install-sdk-platform.py.
+
+I am investigating whether an existing static x86/DOS recompilation tool can advance the independent original-EXE path beyond the Ghidra exports. Current user-facing Original remains explicitly the classic KeeperFX profile; do not relabel it as an independent recompilation.
