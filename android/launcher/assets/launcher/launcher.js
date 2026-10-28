@@ -80,7 +80,7 @@ const kr = {
     $('playOriginal').disabled = running || !ready || !s.engine;
     $('originalCaption').textContent = s.original_build
       ? 'Original game, recompiled for ARM64 from your files'
-      : 'Original campaign on the KeeperFX engine (classic profile; original recompilation pending)';
+      : 'Original campaign only, no mods, own saves — on the KeeperFX engine (original recompilation pending)';
     $('kfxCaption').textContent = ready
       ? 'KeeperFX ' + (kv === 'folder' ? '' : kv || '') + (state.alpha_version ? ' alpha ' + state.alpha_version : '') + ' · campaigns, mods, multiplayer'
       : 'Prepare the game first';

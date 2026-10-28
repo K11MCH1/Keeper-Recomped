@@ -155,7 +155,10 @@ final class Prepare {
         fromTemplates(kfx);
         ConfigWriter.write(kfx, settings);
 
-        runBuildHook(92, 100);
+        step(92, 94, "Setting up the original game");
+        syncClassic(ctx);
+
+        runBuildHook(94, 100);
 
         state = State.load(ctx);
         state.put("prepared", true).put("prepared_at", now());
@@ -245,6 +248,7 @@ final class Prepare {
         step(95, 100, "Writing settings");
         fromTemplates(Paths.kfx(ctx));
         ConfigWriter.write(Paths.kfx(ctx), settings);
+        syncClassic(ctx);
         base = 100; span = 0; label = "Up to date";
         emit(1, null);
     }
@@ -480,6 +484,21 @@ final class Prepare {
                 + "; Add a mod's folder name under a section to enable it; see _load_order.cfg for an example." + nl + nl
                 + "[after_base]" + nl + nl + "[after_campaign]" + nl + nl + "[after_map]" + nl;
         Files.write(order.toPath(), quiet.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /** The Play Original root, relinked when the KeeperFX tree changed since the last sync. */
+    static synchronized File syncClassic(Context c) throws IOException {
+        File kfx = Paths.kfx(c), original = Paths.original(c);
+        JSONObject st = State.load(c);
+        JSONObject ws = st.optJSONObject("workshop");
+        String sig = ClassicRoot.signature(kfx, st.optString("kfx_version") + "|" + st.optString("alpha_version")
+                + "|" + (ws == null ? 0 : ws.length()) + "|" + st.optString("prepared_at"));
+        if (!ClassicRoot.current(original, sig)) {
+            long t = System.currentTimeMillis();
+            ClassicRoot.sync(kfx, original, sig);
+            AppLog.i("classic root linked in " + (System.currentTimeMillis() - t) + " ms");
+        }
+        return original;
     }
 
     private void backupSaves(File kfx) throws IOException {

@@ -14,6 +14,12 @@ final class Paths {
     /** KeeperFX game root: KeeperFX data plus the DK files it needs. */
     static File kfx(Context c) { return new File(c.getFilesDir(), "kfx"); }
 
+    /**
+     * Classic profile root for Play Original: hard links to the KeeperFX files with
+     * only the original campaign, no mods, and its own saves.
+     */
+    static File original(Context c) { return new File(c.getFilesDir(), "original"); }
+
     /** Output of the engine build hook (original recompilation). */
     static File build(Context c) { return new File(c.getFilesDir(), "build"); }
 

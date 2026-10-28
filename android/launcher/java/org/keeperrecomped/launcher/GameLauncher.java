@@ -80,9 +80,16 @@ final class GameLauncher {
                 originalLib = build.optString("lib");
                 root = build.optString("game_root", Paths.dk(c).getPath());
             } else {
-                // Classic profile on the KeeperFX engine: straight into the original campaign.
-                args.add("-campaign");
-                args.add("keeporig");
+                // Classic profile on the KeeperFX engine: its own root with only the
+                // original campaign, no mods and separate saves (see ClassicRoot).
+                try {
+                    File original = Prepare.syncClassic(c);
+                    ConfigWriter.write(original, s);
+                    root = original.getPath();
+                } catch (Exception e) {
+                    return "Cannot set up the original game: " + e.getMessage();
+                }
+                args.add("-nomods");
             }
         }
         for (String a : s.get("launch_options").trim().split("\\s+"))
