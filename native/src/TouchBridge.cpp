@@ -31,9 +31,24 @@ static uint64_t inputSnapshotAt = 0;
 static int inputThing = 0;
 static std::atomic<int> menuRequest{0};
 static std::atomic<bool> diagnosticSnapshot{false};
-extern "C" JNIEXPORT void JNICALL Java_org_keeperrecomped_game_GameActivity_requestMenu(JNIEnv*,jclass,jint action) { menuRequest.store(action); }
+extern "C" JNIEXPORT void JNICALL Java_org_keeperrecomped_game_GameActivity_requestMenu(JNIEnv*,jclass,jint action) { menuRequest.store(action); if (KfxAndroidInputDiagnostics()) LbSyncLog("AndroidMenu request=%d\n", static_cast<int>(action)); }
 extern "C" JNIEXPORT void JNICALL Java_org_keeperrecomped_game_TouchProbe_snapshot(JNIEnv*,jclass) { diagnosticSnapshot.store(true); }
 extern "C" Uint32 KfxAndroidPresentationGeneration(void) { return presentationGeneration; }
+// Android Back behaves exactly like Escape (in-game Options, frontend "back"): inject the
+// key so KeeperFX's own Escape handling runs; release it a few frames later so the
+// per-frame key latch sees it held. (Claude, 2026-10-29)
+static int escapeReleaseTicks = 0;
+static void pushEscape(bool down) {
+    SDL_Event ev; SDL_zero(ev);
+    ev.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+    ev.key.timestamp = SDL_GetTicksNS();
+    ev.key.windowID = SDL_GetWindowID(GetSDLWindowSystem()->GetSDLWindow());
+    ev.key.scancode = SDL_SCANCODE_ESCAPE;
+    ev.key.key = SDLK_ESCAPE;
+    ev.key.down = down;
+    bool pushed = SDL_PushEvent(&ev);
+    if (KfxAndroidInputDiagnostics()) LbSyncLog("AndroidMenu escape %s pushed=%d\n", down ? "down" : "up", static_cast<int>(pushed));
+}
 
 extern "C" void KfxAndroidConfigureTouch(float slop, float pinch, float rotate) {
     gestures.configure({slop, pinch, rotate, 450});
@@ -86,6 +101,9 @@ extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
     if (e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WILL_ENTER_BACKGROUND || e->type == SDL_EVENT_FINGER_CANCELED) {
         gestures.cancel(); drain(); panX=panY=zoomDelta=rotationDelta=0; return 0;
     }
+    if ((e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_KEY_UP) && KfxAndroidInputDiagnostics())
+        LbSyncLog("AndroidKey %s scancode=%d key=0x%x menu_active=%d show_gui=%d\n", e->type == SDL_EVENT_KEY_DOWN ? "down" : "up",
+                  static_cast<int>(e->key.scancode), static_cast<unsigned>(e->key.key), static_cast<int>(a_menu_window_is_active()), static_cast<int>(local_state.show_gui));
     if (e->type != SDL_EVENT_FINGER_DOWN && e->type != SDL_EVENT_FINGER_UP && e->type != SDL_EVENT_FINGER_MOTION) return 0;
     int w=0,h=0; GetSDLWindowSystem()->GetWindowSize(&w,&h);
     float x=e->tfinger.x*w, y=e->tfinger.y*h;
@@ -104,11 +122,10 @@ extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
 extern "C" void KfxAndroidTouchTick(void) {
     gestures.tick(SDL_GetTicks());drain();
     if (diagnosticSnapshot.exchange(false) && KfxAndroidInputDiagnostics()) { inputSnapshotAt=SDL_GetTicks();inputThing=local_state.local_thing_under_hand; }
+    if (escapeReleaseTicks > 0 && --escapeReleaseTicks == 0) pushEscape(false);
     int request=menuRequest.exchange(0);
     if (request==1) {
-        if (!local_state.camera.ready) lbUserQuit=1;
-        else if (a_menu_window_is_active()) turn_off_all_window_menus();
-        else fake_button_click(BID_OPTIONS);
+        if (escapeReleaseTicks == 0) { pushEscape(true); escapeReleaseTicks = 3; }
     } else if (request && local_state.camera.ready && KfxAndroidCheatsEnabled()) {
         if(request==3) toggle_instance_cheat_menu(); else toggle_main_cheat_menu();
     }

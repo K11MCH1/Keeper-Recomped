@@ -93,4 +93,13 @@ public final class GameActivity extends SDLActivity {
         if(finishing)android.os.Process.killProcess(android.os.Process.myPid());
     }
     @Override public void onBackPressed(){requestMenu(1);}
+    // SDL's view consumes KEYCODE_BACK as a key event, so onBackPressed never runs;
+    // take Back here before SDL sees it (Claude, 2026-10-29).
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent e){
+        if(e.getKeyCode()==android.view.KeyEvent.KEYCODE_BACK){
+            if(e.getAction()==android.view.KeyEvent.ACTION_UP&&!e.isCanceled())requestMenu(1);
+            return true;
+        }
+        return super.dispatchKeyEvent(e);
+    }
 }
