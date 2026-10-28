@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original emblem: a horned keeper's helm. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E3A63C" android:pathData="M41,50 C31,46 25,36 27,23 C33,33 39,38 47,42 Z" />
+    <path android:fillColor="#E3A63C" android:pathData="M67,50 C77,46 83,36 81,23 C75,33 69,38 61,42 Z" />
+    <path android:fillColor="#E3A63C" android:pathData="M36,62 C36,45 44,36 54,36 C64,36 72,45 72,62 L72,73 L62,82 L54,76 L46,82 L36,73 Z" />
+    <path android:fillColor="#3A0B07" android:pathData="M41,57 L52,61 L42,64 Z M67,57 L56,61 L66,64 Z M53,66 L55,66 L55,74 L54,75 L53,74 Z" />
+</vector>

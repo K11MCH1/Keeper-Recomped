@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src file:; style-src file: 'unsafe-inline'; img-src file: https://keeperfx.net https://*.keeperfx.net data:">
+<title>Keeper Recomped</title>
+<link rel="stylesheet" href="launcher.css">
+</head>
+<body>
+<header class="top">
+  <svg class="emblem" viewBox="20 18 68 68" aria-hidden="true">
+    <path d="M41,50 C31,46 25,36 27,23 C33,33 39,38 47,42 Z M67,50 C77,46 83,36 81,23 C75,33 69,38 61,42 Z M36,62 C36,45 44,36 54,36 C64,36 72,45 72,62 L72,73 L62,82 L54,76 L46,82 L36,73 Z"/>
+    <path class="slit" d="M41,57 L52,61 L42,64 Z M67,57 L56,61 L66,64 Z"/>
+  </svg>
+  <div class="title">
+    <h1>Keeper Recomped</h1>
+    <p>Dungeon Keeper · KeeperFX for Android</p>
+  </div>
+  <span class="chip" id="appVersion"></span>
+</header>
+
+<main id="main">
+  <!-- PLAY -->
+  <section class="tab active" id="tab-play">
+    <div class="card">
+      <h2>Game folder</h2>
+      <p class="path" id="folderPath">No folder chosen</p>
+      <p class="hint">Pick the folder with your own Dungeon Keeper files (it contains <b>DATA</b> and <b>SOUND</b>; for the EA version choose <b>Dungeon Keeper/DATA</b>), or a KeeperFX folder copied from a PC.</p>
+      <button class="btn" id="pickFolder">Choose folder…</button>
+    </div>
+
+    <div class="banner hidden" id="updateBanner">
+      <span id="updateText"></span>
+      <button class="btn small" id="updateNow">Update</button>
+    </div>
+
+    <div class="card">
+      <div class="facts" id="facts"></div>
+      <button class="btn primary wide" id="prepare">Prepare &amp; Build</button>
+      <div class="progress" id="progressBox">
+        <div class="bar"><div class="fill" id="progressFill"></div></div>
+        <div class="plabel"><span id="progressLabel">Not prepared yet</span><span id="progressPct"></span></div>
+        <div class="pdetail" id="progressDetail"></div>
+      </div>
+    </div>
+
+    <div class="playbox">
+      <button class="btn play" id="playOriginal">Play Original</button>
+      <p class="caption" id="originalCaption"></p>
+      <button class="btn play fx" id="playKfx">Play KeeperFX</button>
+      <p class="caption" id="kfxCaption"></p>
+    </div>
+  </section>
+
+  <!-- WORKSHOP -->
+  <section class="tab" id="tab-workshop">
+    <div class="tabhead"><h2>Workshop</h2><button class="btn small" data-refresh="workshop">Refresh</button></div>
+    <p class="hint">Latest maps, campaigns and mods from keeperfx.net. Install copies them into your KeeperFX game.</p>
+    <div class="list" id="workshopList"><p class="empty">Loading…</p></div>
+  </section>
+
+  <!-- NEWS -->
+  <section class="tab" id="tab-news">
+    <div class="tabhead"><h2>News</h2><button class="btn small" data-refresh="news">Refresh</button></div>
+    <div class="list" id="newsList"><p class="empty">Loading…</p></div>
+  </section>
+
+  <!-- SETTINGS TABS (rendered from the Java schema) -->
+  <section class="tab" id="tab-graphics"><div class="tabhead"><h2>Graphics</h2></div><div class="form" data-form="graphics"></div></section>
+  <section class="tab" id="tab-gameplay"><div class="tabhead"><h2>Gameplay</h2></div><div class="form" data-form="gameplay"></div></section>
+
+  <!-- CONTROLS -->
+  <section class="tab" id="tab-controls">
+    <div class="tabhead"><h2>Controls</h2></div>
+    <div class="card">
+      <p class="hint">Control settings will come in a later version. The game uses these touch gestures:</p>
+      <table class="gestures">
+        <tr><td>Tap</td><td>Left click (pick up a creature, select, dig)</td></tr>
+        <tr><td>Tap &amp; hold</td><td>Left click hold</td></tr>
+        <tr><td>Two-finger tap on a creature</td><td>Slap (right click)</td></tr>
+        <tr><td>Two-finger tap</td><td>Right click</td></tr>
+        <tr><td>Two-finger tap &amp; hold</td><td>Right click hold</td></tr>
+        <tr><td>Drag</td><td>Move the camera</td></tr>
+        <tr><td>Pinch</td><td>Zoom in and out</td></tr>
+        <tr><td>Two-finger twist</td><td>Rotate the camera</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-advanced">
+    <div class="tabhead"><h2>Advanced</h2></div>
+    <div class="form" data-form="advanced"></div>
+    <div class="card">
+      <h3>Maintenance</h3>
+      <div class="row-buttons">
+        <button class="btn" id="checkUpdate">Check for updates now</button>
+        <button class="btn" id="resetSettings">Reset all settings</button>
+      </div>
+      <div class="facts small" id="deviceFacts"></div>
+    </div>
+  </section>
+
+  <!-- CREDITS -->
+  <section class="tab" id="tab-credits">
+    <div class="tabhead"><h2>Credits</h2></div>
+    <div class="card credits">
+      <h3>Dungeon Keeper</h3>
+      <p>Created by <b>Bullfrog Productions</b> (1997), published by <b>Electronic Arts</b>. Dungeon Keeper is a trademark of Electronic Arts. This app contains no game data; it uses the copy you own.</p>
+      <h3>KeeperFX</h3>
+      <p>The open-source Dungeon Keeper engine by the <b>KeeperFX team and contributors</b> (dkfans), licensed under the GNU GPL v2. Engine, configs, campaigns, News and Workshop come from their work.</p>
+      <p class="links"><a data-href="https://keeperfx.net">keeperfx.net</a> · <a data-href="https://github.com/dkfans/keeperfx">Source code</a> · <a data-href="https://github.com/dkfans/keeperfx/graphs/contributors">Contributors</a> · <a data-href="https://github.com/dkfans/keeperfx-launcher-qt">KeeperFX Launcher</a></p>
+      <h3>Workshop &amp; campaigns</h3>
+      <p>Maps, campaigns and mods belong to their authors on the KeeperFX Workshop.</p>
+      <h3>Keeper Recomped for Android</h3>
+      <p>Android launcher, touch controls, Vulkan presentation and ARM64 port built with AI coding agents (Claude by Anthropic, Codex by OpenAI) for the project owner.</p>
+      <h3>Libraries</h3>
+      <p><b>SDL</b> (zlib licence) · <b>LZMA SDK</b> by Igor Pavlov (public domain) · <b>Android NDK</b> (Apache 2.0) · <b>Vulkan</b> headers (Apache 2.0)</p>
+      <h3>Licences</h3>
+      <div class="licenses" id="licenseList"></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="play" class="active"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>Play</span></button>
+  <button data-tab="workshop"><svg viewBox="0 0 24 24"><path d="M3 21l7-7m0 0l2-6 6-3-3 6-6 2m4-4l5 5m-2-12l4 4" fill="none" stroke-width="2"/></svg><span>Workshop</span></button>
+  <button data-tab="news"><svg viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 01-2-2zm13 4h3v8a2 2 0 01-2 2M7 9h7M7 13h7M7 16h4" fill="none" stroke-width="2"/></svg><span>News</span></button>
+  <button data-tab="graphics"><svg viewBox="0 0 24 24"><path d="M3 5h18v12H3zM8 21h8M12 17v4" fill="none" stroke-width="2"/></svg><span>Graphics</span></button>
+  <button data-tab="gameplay"><svg viewBox="0 0 24 24"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z" fill="none" stroke-width="2"/></svg><span>Gameplay</span></button>
+  <button data-tab="controls"><svg viewBox="0 0 24 24"><path d="M9 11V5a2 2 0 014 0v6m0-2a2 2 0 014 0v4a7 7 0 01-7 7 6 6 0 01-5-3l-2-4a2 2 0 013-2l2 2" fill="none" stroke-width="2"/></svg><span>Controls</span></button>
+  <button data-tab="advanced"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm8 4l2-1-1-3-2 .3-1.4-1.4L18 5l-3-1-1 2h-2l-1-2-3 1 .3 2-1.4 1.4L4 8 3 11l2 1v2l-2 1 1 3 2-.3 1.4 1.4L7 21l3 1 1-2h2l1 2 3-1-.3-2 1.4-1.4 2 .3 1-3-2-1z" fill="none" stroke-width="1.6"/></svg><span>Advanced</span></button>
+  <button data-tab="credits"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9-9a5 5 0 019-3 5 5 0 019 3c-2 4.5-9 9-9 9z" fill="none" stroke-width="2"/></svg><span>Credits</span></button>
+</nav>
+
+<div class="toast hidden" id="toast"></div>
+<div class="modal hidden" id="modal"><div class="sheet"><div class="sheet-head"><h3 id="modalTitle"></h3><button class="btn small" id="modalClose">Close</button></div><div class="sheet-body" id="modalBody"></div></div></div>
+
+<script src="launcher.js"></script>
+</body>
+</html>
