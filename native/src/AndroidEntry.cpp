@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <cstdio>
 #include <string>
 #include <vector>
 #include <unistd.h>
@@ -11,18 +12,40 @@
 static std::string presentation = "vulkan";
 static float renderScale = 0;
 static int frameCap = 0;
+static bool vsync = true, showFPS = false;
+static double measuredFPS = 0;
 extern "C" const char* KfxAndroidPresentationDriver(void) { return presentation.c_str(); }
 extern "C" float KfxAndroidRenderScale(void) { return renderScale; }
 extern "C" int KfxAndroidFrameCap(void) { return frameCap; }
+extern "C" int KfxAndroidVsync(void) { return vsync ? 1 : 0; }
+extern "C" void KfxAndroidDrawOverlay(SDL_Renderer* renderer) {
+    if (!showFPS) return;
+    float sx=1,sy=1;Uint8 r,g,b,a;
+    SDL_GetRenderScale(renderer,&sx,&sy);SDL_GetRenderDrawColor(renderer,&r,&g,&b,&a);
+    SDL_SetRenderScale(renderer,3,3);
+    SDL_FRect background{3,3,94,14};SDL_SetRenderDrawColor(renderer,0,0,0,255);SDL_RenderFillRect(renderer,&background);
+    SDL_SetRenderDrawColor(renderer,255,230,150,255);
+    char text[32];std::snprintf(text,sizeof(text),"FPS %.1f",measuredFPS);
+    SDL_RenderDebugText(renderer,6,6,text);
+    SDL_SetRenderScale(renderer,sx,sy);SDL_SetRenderDrawColor(renderer,r,g,b,a);
+}
 extern "C" void KfxAndroidFramePresented(void) {
-    static uint64_t started=0, frames=0, last=0;
+    static uint64_t started=0, frames=0, last=0, overlayStart=0, overlayFrames=0;
     uint64_t now=SDL_GetTicksNS();
-    if (frameCap > 0 && last > 0) {
-        uint64_t target=last + 1000000000ULL/frameCap;
+    int cap=frameCap;
+    if (!cap) {
+        const SDL_DisplayMode* mode=SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+        cap=mode?std::clamp(static_cast<int>(std::lround(mode->refresh_rate)),60,165):144;
+    }
+    if (!vsync && last > 0) {
+        uint64_t target=last + 1000000000ULL/cap;
         if (now < target) SDL_DelayPrecise(target-now);
         now=SDL_GetTicksNS();
     }
     last=now;
+    if (!overlayStart) overlayStart=now;
+    overlayFrames++;
+    if (now-overlayStart>=1000000000ULL) { measuredFPS=overlayFrames*1e9/(now-overlayStart);overlayStart=now;overlayFrames=0; }
     if (!started) started=now;
     frames++;
     if (now-started >= 5000000000ULL) {
@@ -46,6 +69,8 @@ extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
         else if (arg.starts_with("--touch-slop=")) slop = std::clamp(std::strtof(value("--touch-slop=").c_str(), nullptr), 4.0f, 160.0f);
         else if (arg.starts_with("--rotate-deadzone=")) rotate = std::clamp(std::strtof(value("--rotate-deadzone=").c_str(), nullptr), 5.0f, 45.0f);
         else if (arg.starts_with("--pinch-deadzone=")) pinch = std::clamp(std::strtof(value("--pinch-deadzone=").c_str(), nullptr), .02f, .25f);
+        else if (arg.starts_with("--vsync=")) vsync=value("--vsync=")!="0";
+        else if (arg.starts_with("--show-fps=")) showFPS=value("--show-fps=")=="1";
         else values.push_back(arg);
     }
     if (root.empty() || root.front() != '/' || chdir(root.c_str()) != 0) {

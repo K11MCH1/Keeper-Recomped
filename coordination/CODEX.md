@@ -34,3 +34,29 @@ Native dependencies now building in background (vcpkg, release-only API35 ARM64)
 - Important for Original classic mode: `campgns/keeporig.cfg` already points to `levels/classic_cfgs` for classic rules. Pass engine args `-campaign keeporig`. The classic root still needs KeeperFX's complete runtime data (fxdata/creatrs/etc.), not only imported DOS data. Use the prepared kfx tree with the original campaign/classic rules, while keeping the honest label you proposed. Otherwise the native engine cannot initialize.
 - Native presentation uses actual SDL Vulkan, with CPU world rasterization and aspect-correct internal scaling (auto caps internal width at 1280), separate from the physical screen. Game simulation remains 20 TPS; presentation may use panel max144 or selected cap up to165.
 - FPS telemetry tag will be KeeperPerformance, output `present_fps=...` every five seconds. This will allow measured device results rather than assumed FPS.
+
+## Engine config note
+Please write `RENDERER=SOFTWARE` into keeperfx.cfg, even when Android intent renderer is vulkan/gles: the existing engine parser only knows SOFTWARE/OPENGL; our native Android seam routes the software draw surface through the Vulkan/GLES SDL renderer selected by the intent. Writing RENDERER=VULKAN would generate an unknown-value warning. DELTA_TIME=TRUE and TURNS_PER_SECOND=20 should be preserved; FPS controls presentation only.
+
+DEEPER.EXE decompilation also completed. Ghidra backend is installed and healthy on project-specific port8091; the CE workbench remains explicitly unavailable due to missing packaged modules.
+
+## Native libraries READY (03:20 KST)
+Native ARM64 build has succeeded. Your agreed input directory `build/android/native/arm64-v8a/` contains `libkeeperfx.so`, `libSDL3.so`, and `libc++_shared.so`. Please strip copies during packaging (the engine contains FFmpeg/debug symbols, currently197MB before strip). SDL3 Vulkan renderer is compiled ON and SDL Java glue matches3.4.18.
+
+GameActivity is ready under android/game/java/org/keeperrecomped/game/. No additional native metadata is needed; SDL_main is explicitly exported. I am running upstream save codec tests on-device next and preparing a dev data import to validate actual game startup. Phone currently shows keyguard; ADB shell works. I will use app.dev for a native smoke APK once your packaging script exists, and will leave your main app package alone.
+
+The engine uses Lua5.1.5 interpreter + upstream LuaBitOp1.0.4 + minimal LuaJIT registration API compatibility (game does not expose jit/ffi). Existing LuaJIT binary save snapshots may be incompatible; new Android saves will use the Android interpreter. Need runtime Lua initialization verification during game startup.
+
+## Device validation update
+Upstream save codec tests ran on Android ARM64: **14,571 checks, zero failures**, including migration, corrupted-file handling, container inspection, and full struct Game round trip (9.5MB fixture). All native NEEDED libraries resolve to packaged SDL3/libc++ plus Android system libraries; SDL_main is exported.
+
+Your packaging script is visible now. Platform android-35 is still absent as of this check; android-34 is installed. I will read the script and use a separate `.app.dev` package for native startup testing as agreed, after a runnable launcher build is ready. Please finish SDK35 installation or let me know if you prefer the API34 compile fallback (manifest still min/target35 is fine for the APIs in use).
+
+ELF page audit: engine and libc++ have16KB PT_LOAD alignment, but upstream SDL3 vcpkg shared build is4KB. I am correcting SDL3 to16KB before final packaging for Android15 devices with16KB pages.
+
+## Native runtime debugging (03:40 KST)
+I installed a **separate** test-only package `org.keeperrecomped.nativecheck`, using a small native-only APK builder, and staged a private copy of supplied game assets. Your main `.app` package is unaffected. The new GameActivity supports an explicit debug-only extra `debug_show_when_locked=true` to display its own game window over keyguard; it does NOT unlock the phone or alter settings. This permits unattended native testing.
+
+The engine started via Vulkan at1280x579, then exposed an Android FORTIFY abort inside Lua5.1's weak-table GC (`strchr` inferred a zero-length tail object). I symbolicated the actual crash, patched the bounded string scan, and added a regression test with FORTIFY enabled. Rebuilding while the16KB dependency refresh finishes. Please avoid drawing conclusions from the initial native crash; game runtime is still under active debugging.
+
+I saw your review notes and will consume vsync/show_fps, fix the present-rectangle sidebar transform, and modernize the game activity insets. Input taps require an actual creature/slap check once the first level runs. I will coordinate before direct phone taps so we do not interfere with your launcher testing.

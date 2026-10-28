@@ -9,9 +9,11 @@ void KfxAndroidCameraInputs(float* pan_x, float* pan_y, float* zoom, float* rota
 const char* KfxAndroidPresentationDriver(void);
 float KfxAndroidRenderScale(void);
 int KfxAndroidFrameCap(void);
+int KfxAndroidVsync(void);
 void KfxAndroidConfigureTouch(float slop, float pinch, float rotate);
 void KfxAndroidApplyCamera(void);
 void KfxAndroidFramePresented(void);
+void KfxAndroidDrawOverlay(SDL_Renderer* renderer);
 #ifdef __cplusplus
 }
 #endif

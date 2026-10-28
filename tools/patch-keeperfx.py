@@ -27,6 +27,8 @@ def main():
     replace("local_camera.c", "void update_local_cameras(void)\n{", "void update_local_cameras(void)\n{\n#ifdef KFX_ANDROID\n    KfxAndroidApplyCamera();\n#endif")
     replace("kfx/renderer/RendererSoftware.cpp", "m_renderer = SDL_CreateRenderer(window, NULL);", "#ifdef KFX_ANDROID\n        m_renderer = SDL_CreateRenderer(window, KfxAndroidPresentationDriver());\n#else\n        m_renderer = SDL_CreateRenderer(window, NULL);\n#endif")
     replace("kfx/renderer/RendererSoftware.cpp", "    SDL_RenderPresent(m_renderer);", "    SDL_RenderPresent(m_renderer);\n#ifdef KFX_ANDROID\n    KfxAndroidFramePresented();\n#endif")
+    replace("kfx/renderer/RendererSoftware.cpp", "    SDL_RenderPresent(m_renderer);\n#ifdef KFX_ANDROID", "#ifdef KFX_ANDROID\n    KfxAndroidDrawOverlay(m_renderer);\n#endif\n    SDL_RenderPresent(m_renderer);\n#ifdef KFX_ANDROID")
+    replace("kfx/renderer/RendererSoftware.cpp", "    const int want_vsync = vsync_enabled ? 1 : 0;", "#ifdef KFX_ANDROID\n    const int want_vsync = KfxAndroidVsync();\n#else\n    const int want_vsync = vsync_enabled ? 1 : 0;\n#endif")
     # Desktop GL is retained for source compatibility; Android uses SDL's real
     # Vulkan/GLES presenter over the existing software game drawing path.
     replace("kfx/renderer/RendererManager.cpp", "    return (requested == RENDERER_AUTO) ? RENDERER_SOFTWARE : requested;", "#ifdef KFX_ANDROID\n    return RENDERER_SOFTWARE;\n#else\n    return (requested == RENDERER_AUTO) ? RENDERER_SOFTWARE : requested;\n#endif")

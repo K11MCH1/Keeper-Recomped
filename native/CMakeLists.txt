@@ -35,8 +35,9 @@ target_include_directories(centitoml PUBLIC "${KFX_ROOT}/deps/centitoml")
 target_link_libraries(centitoml PUBLIC centijson)
 file(GLOB LUA_SOURCES "${THIRD_PARTY}/lua-5.1.5/src/*.c")
 list(FILTER LUA_SOURCES EXCLUDE REGEX "/(lua|luac|print)\\.c$")
-add_library(lua51 STATIC ${LUA_SOURCES})
+add_library(lua51 STATIC ${LUA_SOURCES} "${THIRD_PARTY}/LuaBitOp-1.0.4/bit.c" src/LuaCompat.c)
 target_include_directories(lua51 PUBLIC "${THIRD_PARTY}/lua-5.1.5/src")
+target_include_directories(lua51 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(lua51 PRIVATE LUA_USE_POSIX LUA_USE_DLOPEN)
 target_link_libraries(lua51 PUBLIC dl m)
 
@@ -71,8 +72,9 @@ add_library(keeperfx SHARED ${ENGINE_C} ${ENGINE_CPP}
 target_include_directories(keeperfx PRIVATE "${KFX_ROOT}/src" "${CMAKE_BINARY_DIR}/generated"
   "${CMAKE_CURRENT_SOURCE_DIR}/src" ${FFMPEG_INCLUDE_DIRS})
 target_compile_definitions(keeperfx PRIVATE KFX_ANDROID=1 DEBUG=0 BFDEBUG_LEVEL=0)
-target_compile_options(keeperfx PRIVATE -fwrapv -fno-strict-aliasing
-  -Wno-pragma-pack -Wno-address-of-packed-member -Wno-unused-command-line-argument)
+target_compile_options(keeperfx PRIVATE -fwrapv -fno-strict-aliasing -fsigned-char
+  -Wno-pragma-pack -Wno-address-of-packed-member -Wno-unused-command-line-argument
+  -include "${CMAKE_CURRENT_SOURCE_DIR}/src/LuaCompat.h")
 target_link_options(keeperfx PRIVATE -Wl,-z,max-page-size=16384 -Wl,--no-undefined)
 target_link_directories(keeperfx PRIVATE ${FFMPEG_LIBRARY_DIRS})
 target_link_libraries(keeperfx PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer
@@ -80,3 +82,19 @@ target_link_libraries(keeperfx PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_mi
   ${FFMPEG_LIBRARIES} ${MINIZIP_LIBRARY} ${UPNP_LIBRARY} ${NATPMP_LIBRARY}
   enet6 centijson centitoml astronomy lua51 glad android log dl m)
 set_target_properties(keeperfx PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../build/android/native/arm64-v8a")
+
+option(KFX_ANDROID_SAVE_TESTS "Cross-compile the upstream save codec tests" ON)
+if(KFX_ANDROID_SAVE_TESTS)
+  file(GLOB SAVE_SOURCES "${KFX_ROOT}/src/kfx/save/core/*.cpp" "${KFX_ROOT}/src/kfx/save/core/schema/*.c")
+  add_executable(keeper-save-tests "${KFX_ROOT}/tests/save/kfx_save_tests.c"
+    "${KFX_ROOT}/tools/save-tool/save_digest.c" "${KFX_ROOT}/tools/save-tool/save_validate.c" ${SAVE_SOURCES})
+  target_include_directories(keeper-save-tests PRIVATE "${KFX_ROOT}/src" "${KFX_ROOT}/tools/save-tool" "${KFX_ROOT}/deps/centitoml" "${CMAKE_BINARY_DIR}/generated")
+  target_compile_definitions(keeper-save-tests PRIVATE BFDEBUG_LEVEL=0 DEBUG=0)
+  target_compile_options(keeper-save-tests PRIVATE -fsigned-char -Wno-pragma-pack)
+  target_link_libraries(keeper-save-tests PRIVATE ZLIB::ZLIB SDL3::SDL3)
+  set_target_properties(keeper-save-tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../build/tests")
+  add_executable(keeper-lua-tests tests/lua_tests.c)
+  target_include_directories(keeper-lua-tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_link_libraries(keeper-lua-tests PRIVATE lua51)
+  set_target_properties(keeper-lua-tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../build/tests")
+endif()

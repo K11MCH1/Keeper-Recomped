@@ -16,6 +16,11 @@ This document records verified work, not a claim that every requested milestone 
 - Original KEEPER.EXE imported with the Watcom 32-bit language/compiler specification. All 2,279 recognized functions decompiled with zero decompiler failures. Output is under ignored `analysis/original/KEEPER.EXE`; it is pseudocode requiring ABI/type/global reconstruction before standalone recompilation.
 - All six supplied configuration tests pass using the installed Ghidra Python environment.
 - Touch recognizer cross-compiled and executed on Android ARM64: 11 scenarios passed, including pinch/rotation exclusion, multi-touch lift ordering, holds, cancellation, and menu/world dragging.
+- Native engine and all runtime dependencies cross-compiled successfully for Android ARM64. `SDL_main` is exported and runtime dependencies have been audited.
+- Upstream save codec suite executed on the phone: 14,571 checks, zero failures, including full game-state round trip.
+- Lua/BitOp/registration/serialization regression suite executed on the phone: seven checks passed with Android FORTIFY enabled. A weak-table GC string scan was patched after an actual level-start crash.
+- Original DEEPER.EXE: all 2,342 recognized functions exported with zero decompiler failures.
+- Ghidra MCP live stdio verification passed: 260 tools and healthy project-specific backend on loopback port8091.
 
 ## Build commands
 1. `powershell -ExecutionPolicy Bypass -File tools/build-dependencies.ps1`

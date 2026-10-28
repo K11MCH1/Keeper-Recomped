@@ -1,0 +1,133 @@
+[
+  {
+    "name": "keeperfx",
+    "source": "https://github.com/dkfans/keeperfx.git",
+    "commit": "da038f03ab5f472dc570045f49cbfa76e7101ec4",
+    "notice": "keeperfx-LICENSE.txt"
+  },
+  {
+    "name": "vcpkg",
+    "source": "https://github.com/microsoft/vcpkg.git",
+    "commit": "15b12b99a227d51e21c86dffd40385439eac87a0",
+    "notice": "vcpkg-LICENSE.txt.txt"
+  },
+  {
+    "name": "ghidra-lx-loader",
+    "source": "https://github.com/yetmorecode/ghidra-lx-loader.git",
+    "commit": "60bae5199fdada5b3b825741a94bfbbe04cb7a5f",
+    "notice": "ghidra-lx-loader-LICENSE.txt"
+  },
+  {
+    "name": "enet6",
+    "source": "https://github.com/SirLynix/enet6.git",
+    "commit": "bf0003fb0004b12ff1d2b0c51c7c7e9a0d2d7732",
+    "notice": "enet6-LICENSE.txt"
+  },
+  {
+    "name": "astronomy",
+    "source": "https://github.com/cosinekitty/astronomy.git",
+    "commit": "865d3da7d8112bbc7911238052c6af4aaf877181",
+    "notice": "astronomy-LICENSE.txt"
+  },
+  {
+    "name": "SDL",
+    "source": "https://github.com/libsdl-org/SDL.git",
+    "commit": "829a65d769d935c4852f8159e964312c0957260a",
+    "notice": "SDL-LICENSE.txt.txt"
+  },
+  {
+    "name": "lua-5.1.5",
+    "source": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+    "notice": "lua-5.1.5-COPYRIGHT.txt"
+  },
+  {
+    "name": "LuaBitOp-1.0.4",
+    "source": "https://bitop.luajit.org/download/LuaBitOp-1.0.4.tar.gz",
+    "notice": "LuaBitOp-1.0.4-README.txt"
+  },
+  {
+    "name": "curl",
+    "notice": "dependency-curl.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "ffmpeg",
+    "notice": "dependency-ffmpeg.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "fmt",
+    "notice": "dependency-fmt.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "libjpeg-turbo",
+    "notice": "dependency-libjpeg-turbo.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "libnatpmp",
+    "notice": "dependency-libnatpmp.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "libogg",
+    "notice": "dependency-libogg.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "libpng",
+    "notice": "dependency-libpng.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "libspng",
+    "notice": "dependency-libspng.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "libvorbis",
+    "notice": "dependency-libvorbis.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "miniupnpc",
+    "notice": "dependency-miniupnpc.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "minizip",
+    "notice": "dependency-minizip.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "openal-soft",
+    "notice": "dependency-openal-soft.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "openssl",
+    "notice": "dependency-openssl.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "sdl3",
+    "notice": "dependency-sdl3.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "sdl3-image",
+    "notice": "dependency-sdl3-image.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "sdl3-mixer",
+    "notice": "dependency-sdl3-mixer.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  },
+  {
+    "name": "zlib",
+    "notice": "dependency-zlib.txt",
+    "build": "native/vcpkg.json and pinned vcpkg baseline"
+  }
+]

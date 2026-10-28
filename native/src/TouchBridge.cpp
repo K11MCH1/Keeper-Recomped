@@ -20,16 +20,22 @@ static uint64_t lastDrain = 0;
 extern "C" void KfxAndroidConfigureTouch(float slop, float pinch, float rotate) {
     gestures.configure({slop, pinch, rotate, 450});
 }
-static void position(float x, float y) {
+static SDL_FPoint gamePosition(float x, float y) {
     int ww = 0, wh = 0;
     GetSDLWindowSystem()->GetWindowSize(&ww, &wh);
     int rx=0, ry=0, rw=ww, rh=wh;
     GetSDLWindowSystem()->GetPresentRect(&rx, &ry, &rw, &rh);
-    float sx=1, sy=1; GetSDLWindowSystem()->GetPixelsPerWindowUnit(&sx, &sy);
+    int dw=ww,dh=wh;
+    SDL_GetWindowSizeInPixels(GetSDLWindowSystem()->GetSDLWindow(),&dw,&dh);
+    float sx=ww>0?static_cast<float>(dw)/ww:1, sy=wh>0?static_cast<float>(dh)/wh:1;
     float gx = rw > 0 ? (x*sx-rx)*RendererPhysicalWidth()/rw : x;
     float gy = rh > 0 ? (y*sy-ry)*RendererPhysicalHeight()/rh : y;
-    pointerHandler.SetMousePosition(std::clamp(static_cast<int>(gx), 0, std::max(0, static_cast<int>(RendererPhysicalWidth())-1)),
-                                    std::clamp(static_cast<int>(gy), 0, std::max(0, static_cast<int>(RendererPhysicalHeight())-1)));
+    return {gx,gy};
+}
+static void position(float x, float y) {
+    auto point=gamePosition(x,y);
+    pointerHandler.SetMousePosition(std::clamp(static_cast<int>(point.x), 0, std::max(0, static_cast<int>(RendererPhysicalWidth())-1)),
+                                    std::clamp(static_cast<int>(point.y), 0, std::max(0, static_cast<int>(RendererPhysicalHeight())-1)));
 }
 static void button(unsigned action) { TbPoint delta{0,0}; mouseControl(action, &delta); }
 static void drain() {
@@ -60,8 +66,9 @@ extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
         // Menus and the sidebar retain normal mouse dragging; world drags pan.
         const auto* player = get_my_player();
         bool world = player && (get_local_view_type(player) == PVT_DungeonTop || get_local_view_type(player) == PVT_MapScreen);
-        float logicalX = w > 0 ? x*RendererPhysicalWidth()/w : x;
-        gestures.setPanEnabled(world && logicalX >= lbDisplay.GraphicsWindowX);
+        auto point=gamePosition(x,y);
+        gestures.setPanEnabled(world && point.x>=player->engine_window_x && point.x<player->engine_window_x+player->engine_window_width
+            && point.y>=player->engine_window_y && point.y<player->engine_window_y+player->engine_window_height);
         gestures.down(static_cast<int64_t>(e->tfinger.fingerID),x,y,SDL_GetTicks());
     } else if (e->type == SDL_EVENT_FINGER_UP) gestures.up(static_cast<int64_t>(e->tfinger.fingerID),x,y,SDL_GetTicks());
     else gestures.move(static_cast<int64_t>(e->tfinger.fingerID),x,y,SDL_GetTicks());

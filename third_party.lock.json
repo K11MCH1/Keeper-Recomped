@@ -41,6 +41,10 @@
     "lua-5.1.5": {
       "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
       "sha256": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333"
+    },
+    "LuaBitOp-1.0.4": {
+      "url": "https://bitop.luajit.org/download/LuaBitOp-1.0.4.tar.gz",
+      "sha256": "adc32785579fc62f7736881332f70f50fe168b2ae8d0ddb741ff018a76f48c80"
     }
   }
 }
