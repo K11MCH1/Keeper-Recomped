@@ -61,6 +61,7 @@ final class GameLauncher {
         if (!new File(kfx, "fxdata").isDirectory() || !new File(kfx, "data/bluepal.dat").isFile())
             return "Press Prepare & Build first.";
         try {
+            Prepare.fromTemplates(kfx);
             ConfigWriter.write(kfx, s); // settings may have changed since preparing
         } catch (Exception e) {
             return "Cannot write keeperfx.cfg: " + e.getMessage();

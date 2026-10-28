@@ -33,11 +33,16 @@ const kr = {
   },
 
   api(endpoint) {
+    return this.call((id) => bridge.api(endpoint, id));
+  },
+
+  // Async bridge call answered by an "api" event carrying the same id.
+  call(start) {
     return new Promise((resolve, reject) => {
       if (!bridge) return reject(new Error('offline preview'));
       const id = 'r' + (++this.seq);
       this.pending[id] = { resolve, reject };
-      bridge.api(endpoint, id);
+      start(id);
     });
   },
 
@@ -166,6 +171,10 @@ function safeHtml(html) {
   return root.innerHTML;
 }
 
+document.addEventListener('error', (e) => {
+  if (e.target && e.target.tagName === 'IMG') e.target.remove();
+}, true);
+
 // ---- tabs ----
 function showTab(name) {
   kr.activeTab = name;
@@ -250,8 +259,8 @@ async function loadWorkshop() {
 async function installWorkshop(id, name, pageUrl) {
   if (!kr.st || !kr.st.kfx_ready) { toast('Prepare KeeperFX first (Play tab).'); return; }
   try {
-    const body = await kr.api('workshop/item/' + id);
-    const files = ((body.workshop_item || {}).files || []).filter((f) => /\.(zip|7z)$/i.test(f.filename || ''));
+    const body = await kr.call((cb) => bridge.workshopFiles(id, pageUrl, cb));
+    const files = (body.files || []).filter((f) => /\.(zip|7z)$/i.test(f.filename || ''));
     if (!files.length) {
       toast('No direct download for this item — opening keeperfx.net.');
       bridge && bridge.open(pageUrl);

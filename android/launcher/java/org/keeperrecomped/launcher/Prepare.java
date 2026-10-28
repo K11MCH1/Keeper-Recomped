@@ -180,6 +180,7 @@ final class Prepare {
         }
 
         step(90, 92, "Writing settings");
+        fromTemplates(kfx);
         ConfigWriter.write(kfx, settings);
 
         runBuildHook(92, 100);
@@ -228,6 +229,7 @@ final class Prepare {
         if ("ALPHA".equals(settings.get("release_channel")))
             applyAlpha(0, 95);
         step(95, 100, "Writing settings");
+        fromTemplates(Paths.kfx(ctx));
         ConfigWriter.write(Paths.kfx(ctx), settings);
         base = 100; span = 0; label = "Up to date";
         emit(1, null);
@@ -440,6 +442,21 @@ final class Prepare {
         dst.getParentFile().mkdirs();
         Files.copy(src.toPath(), dst.toPath(), StandardCopyOption.REPLACE_EXISTING);
         return true;
+    }
+
+    /**
+     * KeeperFX ships editable files as underscore templates (_keeperfx.cfg,
+     * mods/_load_order.cfg); like its launcher, create the real file once.
+     * keeperfx.cfg itself is ConfigWriter's job.
+     */
+    static void fromTemplates(File kfx) throws IOException {
+        copyIfPresent(new File(kfx, "mods/_load_order.cfg"), new File(kfx, "mods/load_order.cfg"), false);
+    }
+
+    private static void copyIfPresent(File src, File dst, boolean replace) throws IOException {
+        if (!src.isFile() || (dst.isFile() && !replace))
+            return;
+        Files.copy(src.toPath(), dst.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void backupSaves(File kfx) throws IOException {

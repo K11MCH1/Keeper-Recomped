@@ -399,6 +399,23 @@ public final class LauncherActivity extends Activity {
             });
         }
 
+        /** Async: kr.onEvent("api", {id, ok, body: {files: [...]}}) for a workshop item. */
+        @JavascriptInterface
+        public void workshopFiles(String itemId, String pageUrl, String id) {
+            if (!itemId.matches("[0-9]+")) {
+                send(apiResult(id, null, "bad item"), "api");
+                return;
+            }
+            io.execute(() -> {
+                try {
+                    org.json.JSONArray files = new KfxApi(LauncherActivity.this).workshopFiles(itemId, pageUrl);
+                    send(apiResult(id, new JSONObject().put("files", files).toString(), null), "api");
+                } catch (Exception e) {
+                    send(apiResult(id, null, e.getMessage()), "api");
+                }
+            });
+        }
+
         @JavascriptInterface
         public void open(String url) { ui.post(() -> openExternal(url)); }
 
