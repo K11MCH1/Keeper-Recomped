@@ -459,18 +459,42 @@ final class Prepare {
     }
 
     /**
-     * KeeperFX ships editable files as underscore templates (_keeperfx.cfg,
-     * mods/_load_order.cfg); like its launcher, create the real file once.
-     * keeperfx.cfg itself is ConfigWriter's job.
+     * An inactive mods/load_order.cfg so the engine does not warn about a missing
+     * file. KeeperFX's _load_order.cfg template enables two demo mods, so it is never
+     * copied; an existing file the player made is left alone.
      */
     static void fromTemplates(File kfx) throws IOException {
-        copyIfPresent(new File(kfx, "mods/_load_order.cfg"), new File(kfx, "mods/load_order.cfg"), false);
-    }
-
-    private static void copyIfPresent(File src, File dst, boolean replace) throws IOException {
-        if (!src.isFile() || (dst.isFile() && !replace))
+        File mods = new File(kfx, "mods");
+        File order = new File(mods, "load_order.cfg");
+        if (!mods.isDirectory())
             return;
-        Files.copy(src.toPath(), dst.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        if (order.isFile()) {
+            // Keep it unless it is the demo template verbatim, which launcher 0.1.0 dev
+            // builds wrote by mistake (it enables tunneller_imp_swap and instant_charge_up).
+            File template = new File(mods, "_load_order.cfg");
+            if (!template.isFile() || !java.util.Arrays.equals(Files.readAllBytes(order.toPath()), Files.readAllBytes(template.toPath())))
+                return;
+        }
+        String quiet = "; KeeperFX mods load order, created empty by the Keeper Recomped launcher.
+
+"
+                + "; Add a mod's folder name under a section to enable it; see _load_order.cfg for an example.
+
+
+
+"
+                + "[after_base]
+
+
+
+[after_campaign]
+
+
+
+[after_map]
+
+";
+        Files.write(order.toPath(), quiet.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private void backupSaves(File kfx) throws IOException {
