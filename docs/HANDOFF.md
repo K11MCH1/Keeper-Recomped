@@ -25,6 +25,8 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 
 **FPS (OS-level, fixed `scripts/android/measure_fps.py`, main APK, level 1):** 60.2 FPS, p99 16.62 ms, max 16.63 ms — perfectly paced at the panel's current 60 Hz. The OS display policy decides the panel rate (`dumpsys SurfaceFlinger | grep displayManagerPolicy`: [60,60] now, [120,120] earlier); the game requests 144 Hz and the launcher writes FRAMES_PER_SECOND=144. 144 Hz needs the user's display setting (refresh_rate_mode auto → 144).
 
+**FPS at 144 Hz (2026-10-29 08:40 KST, after the user set 144 Hz for the game in Game Space):** policy [144,144] while the game is in front (60 at the home screen). Main menu 144.6 FPS; level 1 idle 144.6 FPS; level 1 while panning by drag 144.6 FPS — p50/p99 6.92 ms, max 6.94 ms, no gaps. The engine's own counter (`AndroidPerformance present_fps` in keeperfx.log) agrees: ≈144.0 on Vulkan, so these are new frames, not repeats.
+
 **Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, level start/gestures/FPS in the main APK (after Codex fixes the blockers; Codex verified gestures + 120 FPS on its own lowercase test tree).
 
 **Test-environment facts:**
