@@ -51,7 +51,8 @@ final class GameLauncher {
     }
 
     /** @return null when started, else a message for the player */
-    static String play(Context c, String profile, boolean debugShowWhenLocked) {
+    /** @param debug engine debug extras forwarded by debuggable builds, or null */
+    static String play(Context c, String profile, android.os.Bundle debug) {
         if (!engineInstalled(c))
             return "This build does not contain the game engine yet.";
         if (PrepareService.isRunning())
@@ -114,8 +115,8 @@ final class GameLauncher {
         i.putExtra("show_fps", s.bool("show_fps"));
         if (originalLib != null)
             i.putExtra("original_lib", originalLib);
-        if (debugShowWhenLocked)
-            i.putExtra("debug_show_when_locked", true); // engineering builds; see GameActivity
+        if (debug != null)
+            i.putExtras(debug); // engineering builds only; see GameActivity
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         AppLog.i("play " + profile + " root=" + root + " args=" + args);
         try {

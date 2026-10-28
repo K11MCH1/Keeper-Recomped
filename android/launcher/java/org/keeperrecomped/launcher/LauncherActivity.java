@@ -395,8 +395,15 @@ public final class LauncherActivity extends Activity {
         /** @return "" when the game started, else why not */
         @JavascriptInterface
         public String play(String profile) {
-            String e = GameLauncher.play(LauncherActivity.this, profile,
-                    isDebuggable() && getIntent().getBooleanExtra("debug_show_when_locked", false));
+            android.os.Bundle debug = null;
+            if (isDebuggable()) {
+                // Pass the engine's own debug switches through (see GameActivity).
+                debug = new android.os.Bundle();
+                for (String key : new String[]{"debug_show_when_locked", "input_diagnostics", "enable_touch_probe"})
+                    if (getIntent().getBooleanExtra(key, false))
+                        debug.putBoolean(key, true);
+            }
+            String e = GameLauncher.play(LauncherActivity.this, profile, debug);
             return e == null ? "" : e;
         }
 
