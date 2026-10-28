@@ -68,8 +68,9 @@ final class Settings {
                 "0|Display maximum", "60|60", "90|90", "120|120", "144|144", "165|165");
         bool("graphics", "Display", "vsync", true, "Enable VSync", "Present in step with the display; prevents tearing.");
         choice("graphics", "Display", "render_scale", "0", "Resolution",
-                "Auto renders at the screen's native resolution and scales the interface for this device.",
-                "0|Auto (native)", "1.0|100%", "0.75|75%", "0.5|50%");
+                "Internal rendering size, scaled to fill the screen. Auto keeps the screen's shape at up to 1280 pixels "
+                        + "wide on any device; 100% draws every screen pixel (sharper, heavier).",
+                "0|Auto", "1.0|100% (native)", "0.75|75%", "0.5|50%");
         choice("graphics", "Display", "viewport_mode", "ORIGINAL", "Viewport mode",
                 "How the in-game view shares the screen with the sidebar.",
                 "ORIGINAL|Original", "FULL|Full", "FULL_LETTERBOX|Full (letterbox)");

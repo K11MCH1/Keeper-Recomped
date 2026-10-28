@@ -22,7 +22,7 @@
 | Play | Folder, Prepare & Build, progress, update banner, Play buttons |
 | Workshop | Latest maps/campaigns/mods from keeperfx.net; **Install** copies them into your KeeperFX game, **Details** opens the page |
 | News | Latest keeperfx.net news |
-| Graphics | Rendering Backend (Vulkan / OpenGL ES), Max. FPS (display maximum = the screen's top refresh rate), VSync, Resolution (Auto = native, auto-scaled), viewport, movies, interface sizes, FPS counter |
+| Graphics | Rendering Backend (Vulkan / OpenGL ES), Max. FPS (display maximum = the screen's top refresh rate), VSync, Resolution (Auto = screen shape at up to 1280 px wide; or 100%/75%/50% of native), viewport, movies, interface sizes, FPS counter |
 | Gameplay | Language, Play intro, Play splash screens, Pause game when minimized, Enable Cheats, censorship, flee/imprison defaults, zoom, game speed, replays, sound |
 | Controls | Touch gesture reference (control settings later) |
 | Advanced | Multiplayer (matchmaking server/port), API, Launcher (release channel, update checks, auto update, save backups, website integration, keep downloads), touch dead zones, maintenance |
