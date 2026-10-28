@@ -1,0 +1,45 @@
+# Keeper Recomped for Android — launcher guide
+
+## What you need
+- An Android 15+ phone with a 64-bit (arm64) CPU and ~1.5 GB free space.
+- Your own Dungeon Keeper files (GOG "Dungeon Keeper Gold", EA/Origin "Dungeon Keeper", or the CD), **or** a KeeperFX folder from a PC (which already contains them).
+- Internet for the first Prepare (downloads KeeperFX 1.4.0, ~375 MB, plus the latest alpha patch, ~24 MB).
+
+## First run
+1. Copy the game folder to the phone, e.g. `Download/Dungeon Keeper` (for the EA version it must contain `DATA`).
+2. Open **Keeper Recomped** → **Play** tab → **Choose folder…** and pick:
+   - EA/Origin: `Dungeon Keeper/DATA` (or `Dungeon Keeper`; the launcher searches a few levels down),
+   - GOG: the `Dungeon Keeper Gold` folder,
+   - a PC KeeperFX folder: the folder that has `keeperfx.exe` / `fxdata`.
+3. Press **Prepare & Build**. It imports your files into the app, downloads and unpacks KeeperFX, adds the alpha patch (Alpha channel), and writes `keeperfx.cfg`. The progress bar and a notification show each step; it keeps running with the screen off. Cancel from the same button or the notification.
+4. Press **Play KeeperFX** for KeeperFX (campaign list, mods, multiplayer) or **Play Original** for the original campaign.
+
+> **Play Original today** runs the original campaign (`keeporig`) on the KeeperFX engine compiled for ARM64 — the "classic profile". The separate recompilation of the original DOS executable is still in progress; the button's caption says which one you are getting.
+
+## Tabs
+| Tab | What it does |
+|---|---|
+| Play | Folder, Prepare & Build, progress, update banner, Play buttons |
+| Workshop | Latest maps/campaigns/mods from keeperfx.net; **Install** copies them into your KeeperFX game, **Details** opens the page |
+| News | Latest keeperfx.net news |
+| Graphics | Rendering Backend (Vulkan / OpenGL ES), Max. FPS (display maximum = the screen's top refresh rate), VSync, Resolution (Auto = native, auto-scaled), viewport, movies, interface sizes, FPS counter |
+| Gameplay | Language, Play intro, Play splash screens, Pause game when minimized, Enable Cheats, censorship, flee/imprison defaults, zoom, game speed, replays, sound |
+| Controls | Touch gesture reference (control settings later) |
+| Advanced | Multiplayer (matchmaking server/port), API, Launcher (release channel, update checks, auto update, save backups, website integration, keep downloads), touch dead zones, maintenance |
+| Credits | Bullfrog/EA, the KeeperFX team, libraries and licences |
+
+## Touch controls (in game)
+Tap = left click (pick up a creature) · tap & hold = left hold · two-finger tap on a creature = slap · two-finger tap elsewhere = right click · two-finger tap & hold = right hold · one-finger drag = move camera · pinch = zoom · two-finger twist = rotate (a dead zone stops pinches from rotating; tune it under Advanced → Touch tuning).
+
+## Updates
+With **Automatically check for KeeperFX updates** on, the Play tab shows a banner when a new alpha patch (Alpha channel) or stable release is out; **Update** installs it (saves are backed up first if enabled). Alpha patches update KeeperFX's data and configs; the game engine itself is the one built into this app, so engine changes arrive with app updates.
+
+## Where things are
+- App storage: `files/dk` (your imported files), `files/kfx` (the KeeperFX game, saves in `files/kfx/save`), `files/save-backup/`.
+- Logs: `files/logs/launcher.log` (launcher) and `files/kfx/keeperfx.log` (engine). Debug builds: `adb shell run-as org.keeperrecomped.app cat files/logs/launcher.log`.
+
+## Building the APK (developers)
+```
+python scripts/android/build_apk.py --output build/apk/keeper-recomped.apk [--debuggable]
+```
+Needs JDK 17, Android SDK platform 35 + build-tools 35, NDK 27.3, the LZMA SDK under `third_party/lzma-sdk/C`, and Codex's engine libraries in `build/android/native/arm64-v8a/`. No Gradle. The APK never contains Dungeon Keeper data.
