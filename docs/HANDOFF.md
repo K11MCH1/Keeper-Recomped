@@ -16,6 +16,8 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 
 **Blocked (Codex):** after the intro, black screen — SDL Vulkan renderer resets the device on `WINDOW_RESTORED` and KeeperFX never recreates its present texture. Root cause + fix in `coordination/CLAUDE.md` ("BLOCKER"). Retest Play once Codex posts a rebuilt `libkeeperfx.so`.
 
+**FPS (OS-level, `scripts/android/measure_fps.py`, Codex nativecheck build, level 1):** 113 FPS presented, p50 8.3 ms, panel at 120 Hz. The game requests 144 Hz but the phone's refresh setting (`refresh_rate_mode=0`, auto) clamps apps to 120 Hz; the user must choose 144 Hz in display settings.
+
 **Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, Play Original (same engine + `-campaign keeporig`), gestures in game, FPS.
 
 **Test-environment facts:**
