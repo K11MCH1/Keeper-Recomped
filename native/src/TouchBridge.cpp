@@ -178,6 +178,24 @@ static void repeatPickup(uint64_t now) {
     nextPickupAt = now + 110;
 }
 
+// Two-finger hold with creatures in the hand keeps dropping them, one right click (which
+// drops on release) per game turn, where the fingers are, until they lift.
+static bool dropHeld = false;
+static uint64_t nextDropAt = 0;
+static GameTurn lastDropTurn = 0;
+static bool handHoldsThings() {
+    auto* player = get_my_player();
+    if (!player || get_local_view_type(player) != PVT_DungeonTop || a_menu_window_is_active()) return false;
+    const auto* dungeon = get_players_dungeon(player);
+    return !dungeon_invalid(dungeon) && dungeon->num_things_in_hand > 0;
+}
+static void repeatDrop(uint64_t now) {
+    if (!dropHeld || now < nextDropAt || get_gameturn() == lastDropTurn || !handHoldsThings()) return;
+    button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP);
+    lastDropTurn = get_gameturn();
+    nextDropAt = now + 110;
+}
+
 // Double tap and hold drags a dig rectangle: the second touch presses the left button
 // in KeeperFX's drag-placement highlight mode and lifting tags the box. In dig context
 // a lone tap waits for the double-tap window, so the first tap of a double tap never
@@ -290,8 +308,12 @@ static void drain() {
         case Kind::RightClick: releaseClick(); button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP); break;
         case Kind::LeftDown: releaseClick(); button(MActn_LBUTTONDOWN); leftHeld = true; nextPickupAt = 0; break;
         case Kind::LeftUp: button(MActn_LBUTTONUP); leftHeld = false; break;
-        case Kind::RightDown: button(MActn_RBUTTONDOWN); break;
-        case Kind::RightUp: button(MActn_RBUTTONUP); break;
+        case Kind::RightDown:
+            if (handHoldsThings()) { dropHeld = true; nextDropAt = 0; break; }
+            button(MActn_RBUTTONDOWN); break;
+        case Kind::RightUp:
+            if (dropHeld) { dropHeld = false; break; }
+            button(MActn_RBUTTONUP); break;
         case Kind::Pan: panX -= a.dx; panY -= a.dy; break;
         case Kind::Zoom: zoomDelta += a.dx; break;
         case Kind::Rotate: rotationDelta += a.dx; break;
@@ -405,9 +427,20 @@ static void updatePossession() {
         centreCursor();
     } else endPossessionInput();
 }
+// A possessed creature takes digital moves: a game turn sends a move only once an axis has
+// added up to 1 (get_creature_control_nonaction_inputs), so values below 1 pulse the moves
+// and the creature walks. The stick snaps to the keyboard's eight directions (a diagonal
+// was ~0.7 per axis, always a walk) and runs at full strength near its rim; inside, the
+// creature walks, faster the further it is pushed.
+constexpr float stickRun = .8f;
 extern "C" void KfxAndroidStickAxes(float* x, float* y) {
-    *x = possessing ? stickX : 0;
-    *y = possessing ? stickY : 0;
+    *x = *y = 0;
+    float amount = std::hypot(stickX, stickY);
+    if (!possessing || amount < .15f) return;
+    float strength = amount >= stickRun ? 1.f : .45f + .35f*(amount-.15f)/(stickRun-.15f);
+    constexpr float sin22 = .3827f; // sectors of 45 degrees around each direction
+    if (std::fabs(stickX) > amount*sin22) *x = stickX > 0 ? strength : -strength;
+    if (std::fabs(stickY) > amount*sin22) *y = stickY > 0 ? strength : -strength;
 }
 extern "C" void KfxAndroidPossessionLook(float* x, float* y) {
     // A drag across half the window is one full-strength mouse sweep.
@@ -453,6 +486,9 @@ extern "C" void KfxAndroidDrawTouchOverlay(SDL_Renderer* r) {
     const SDL_FColor light{1,.93f,.8f,.45f}, shade{0,0,0,.28f};
     disc(r, at(base), 0, l.stickR*k, shade);
     disc(r, at(base), l.stickR*k*.94f, l.stickR*k, light);
+    // Faint ring where walking turns into running (stickRun of the knob's travel).
+    float runAt = .12f + .88f*stickRun;
+    disc(r, at(base), l.stickR*k*(runAt-.02f), l.stickR*k*(runAt+.01f), SDL_FColor{1,.93f,.8f,.18f});
     disc(r, at({base.x+stickX*l.stickR, base.y+stickY*l.stickR}), 0, l.stickR*.42f*k, SDL_FColor{1,.93f,.8f,.5f});
     disc(r, at(l.attack), 0, l.attackR*k, attackDown ? SDL_FColor{.85f,.12f,.05f,.75f} : SDL_FColor{.6f,.08f,.03f,.5f});
     disc(r, at(l.attack), l.attackR*k*.93f, l.attackR*k, light);
@@ -517,6 +553,7 @@ extern "C" void KfxAndroidTouchTick(void) {
     stepClick(now);
     stepDigDrag();
     repeatPickup(now);
+    repeatDrop(now);
     for (auto it = keyReleases.begin(); it != keyReleases.end();) {
         if (now < it->at) { ++it; continue; }
         pushKey(it->scancode, it->key, false);
