@@ -82,7 +82,9 @@ const kr = {
     let warn = '';
     if (ready && v.data && !v.matches) {
       warn = v.unbuildable
-        ? `KeeperFX ${v.data} cannot be built for Android: it is older than the code the Android engine is built on. `
+        ? (v.unbuildable_older
+          ? `KeeperFX ${v.data} cannot be built for Android: it is older than the code the Android engine is built on. `
+          : `KeeperFX ${v.data} changed code the Android engine hooks into, so it needs an app update before it can be built. `)
           + `The game runs this data on ${engineNow}, which may not suit it.`
         : v.kit_changed
           ? 'This app update changes the game engine. Rebuild the game to include it (it takes about a minute).'

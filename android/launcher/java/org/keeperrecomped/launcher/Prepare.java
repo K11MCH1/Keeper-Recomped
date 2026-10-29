@@ -271,8 +271,14 @@ final class Prepare {
         try {
             lib = builder.build(src, work, alpha ? ref : version, version, build);
         } catch (EngineBuilder.Unbuildable e) {
-            State.put(ctx, "unbuildable", version);
-            throw e;
+            // Older than the app's engine: it predates the code the Android changes need. Newer: the
+            // Android changes need an app update. Either way the verdict holds for this app's kit only.
+            boolean older = compareVersions(version, bundledVersion(ctx)) < 0;
+            state = State.load(ctx);
+            state.put("unbuildable", version).put("unbuildable_older", older).put("unbuildable_kit", Toolchain.kitId(ctx));
+            State.save(ctx, state);
+            throw older ? new EngineBuilder.Unbuildable("KeeperFX " + version + " is older than the code the Android engine is built on,"
+                    + " so it cannot be built for Android.") : e;
         }
         JSONObject engine = new JSONObject().put("lib", lib.getPath()).put("for", version).put("commit", ref)
                 .put("label", "KeeperFX " + version).put("kit", tc.recipe.optInt("kit"))
@@ -287,6 +293,31 @@ final class Prepare {
         if (previous != null && !lib.getParentFile().getPath().equals(new File(previous.optString("lib")).getParent()))
             deleteTree(new File(previous.optString("lib")).getParentFile());
         deleteTree(work);
+    }
+
+    /** The KeeperFX version of the engine inside the app (assets/engine.json). */
+    static String bundledVersion(Context c) {
+        try (java.io.InputStream in = c.getAssets().open("engine.json")) {
+            return new JSONObject(KfxSource.read(in)).optString("version");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Dotted versions, missing parts as 0: 1.4.0 < 1.4.0.5571 < 1.4.0.5573. */
+    static int compareVersions(String a, String b) {
+        String[] x = a.split("\\."), y = b.split("\\.");
+        for (int i = 0; i < Math.max(x.length, y.length); i++) {
+            int p = 0, q = 0;
+            try {
+                p = i < x.length ? Integer.parseInt(x[i]) : 0;
+                q = i < y.length ? Integer.parseInt(y[i]) : 0;
+            } catch (NumberFormatException ignored) {
+            }
+            if (p != q)
+                return Integer.compare(p, q);
+        }
+        return 0;
     }
 
     /** Deletes a tree without following symbolic links (the classic root is made of them). */

@@ -292,7 +292,9 @@ public final class LauncherActivity extends Activity {
                     .put("engine_built_at", built != null ? built.optString("built_at") : "")
                     .put("matches", Prepare.engineMatches(this, s))
                     .put("kit_changed", data.equals(built != null ? built.optString("for") : "") && Prepare.kitChanged(this, built))
-                    .put("unbuildable", !data.isEmpty() && data.equals(s.optString("unbuildable")))
+                    .put("unbuildable", !data.isEmpty() && data.equals(s.optString("unbuildable"))
+                            && Toolchain.kitId(this).equals(s.optString("unbuildable_kit")))
+                    .put("unbuildable_older", s.optBoolean("unbuildable_older"))
                     .put("can_build", Toolchain.available(this))
                     .put("engine_error", s.optString("engine_error")));
             o.put("running", PrepareService.isRunning());

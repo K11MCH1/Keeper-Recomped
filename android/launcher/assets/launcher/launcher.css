@@ -71,7 +71,7 @@ main { flex: 1; overflow-y: auto; padding: 4px 16px 16px; -webkit-overflow-scrol
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; }
 .facts.small { margin-top: 12px; font-size: 12px; }
 .facts dt { color: var(--muted); }
-.facts dd { margin: 0; word-break: break-word; }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: break-word; }
 .facts .ok { color: var(--ok); } .facts .bad { color: var(--bad); } .facts .warn { color: var(--gold); }
 .progress { margin-top: 12px; }
 .bar { height: 10px; background: #0b0705; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
