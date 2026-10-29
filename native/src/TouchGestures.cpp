@@ -11,6 +11,12 @@ std::vector<Action> Gestures::take() { return std::exchange(actions, {}); }
 void Gestures::releaseHeld() {
     if (mode == Mode::LeftHeld) emit(Kind::LeftUp, last);
     if (mode == Mode::RightHeld) emit(Kind::RightUp, centroid);
+    if (mode == Mode::Drag) emit(Kind::DragUp, last);
+}
+bool Gestures::captureAsDrag() {
+    if (mode != Mode::One || fingers.size() != 1) return false;
+    mode = Mode::Drag;
+    return true;
 }
 void Gestures::cancel() {
     releaseHeld();

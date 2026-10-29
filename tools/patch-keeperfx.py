@@ -62,6 +62,19 @@ def main():
     # Align touch rows with the caption centres, retaining one row per choice.
     replace("bflib_guibtns.c", '#include "config_sounds.h"', '#include "config_sounds.h"\n#ifdef KFX_ANDROID\n#include "frontmenu_select.h"\n#endif')
     replace("bflib_guibtns.c", '    TbScreenPos y = gbtn->pos_y;\n    if ( (pos_x >= x)', '    TbScreenPos y = gbtn->pos_y;\n#ifdef KFX_ANDROID\n    if (gbtn->draw_call == frontend_draw_campaign_select_button)\n        y = gbtn->scr_pos_y + (gbtn->height * 13 / 11 - gbtn->height) / 2;\n#endif\n    if ( (pos_x >= x)')
+    # Touch zoom and rotation live in the local camera only; keep them when the
+    # parchment map closes instead of restoring the synced pose (and the map jump's
+    # yaw 0). Local-only: the synced yaw catches up through PckA_SetMapRotation.
+    # (Claude, 2026-10-29)
+    for name in ["front_input.c", "packets.c"]:
+        include(name)
+    replace("local_camera.c", '        pose.yaw[true] = 0;\n    }\n    sync_local_camera_pose(player, &pose);\n}', '        pose.yaw[true] = 0;\n    }\n#ifdef KFX_ANDROID\n    for (int i = 0; i < 2; i++) {\n        const struct Camera *dcam = &local_state.camera.destination[i ? CamIV_FrontView : CamIV_Isometric];\n        if (dcam->zoom > 0) pose.zoom[i] = dcam->zoom;\n        pose.yaw[i] = dcam->rotation_angle_x;\n    }\n#endif\n    sync_local_camera_pose(player, &pose);\n}')
+    replace("packets.c", '        set_all_cameras_rotation(cams, 0);\n', '#ifndef KFX_ANDROID\n        set_all_cameras_rotation(cams, 0);\n#endif\n')
+    # Possession on touch: the on-screen stick feeds the movement axes, a right-side
+    # drag supplies look, and the cursor stays free so the side panel can be tapped.
+    replace("front_input.c", '    float movement_y = get_game_key_axis_value(Gkey_MoveDown, ignore_mods) - get_game_key_axis_value(Gkey_MoveUp, ignore_mods);\n', '    float movement_y = get_game_key_axis_value(Gkey_MoveDown, ignore_mods) - get_game_key_axis_value(Gkey_MoveUp, ignore_mods);\n#ifdef KFX_ANDROID\n    float android_x = 0.0f, android_y = 0.0f;\n    KfxAndroidStickAxes(&android_x, &android_y);\n    movement_x = clamp(movement_x + android_x, -1.0f, 1.0f);\n    movement_y = clamp(movement_y + android_y, -1.0f, 1.0f);\n#endif\n')
+    replace("front_input.c", '    long x = GetMouseX();\n    long y = GetMouseY();\n    struct Thing* thing = thing_get(get_local_user_state()->controlled_thing_idx);', '    long x = GetMouseX();\n    long y = GetMouseY();\n#ifdef KFX_ANDROID\n    x = MyScreenWidth >> 1;\n    y = MyScreenHeight >> 1;\n#endif\n    struct Thing* thing = thing_get(get_local_user_state()->controlled_thing_idx);')
+    replace("front_input.c", '        long deltaX = x - centerX;\n        long deltaY = y - centerY;', '        long deltaX = x - centerX;\n        long deltaY = y - centerY;\n#ifdef KFX_ANDROID\n        float android_look_x = 0.0f, android_look_y = 0.0f;\n        KfxAndroidPossessionLook(&android_look_x, &android_look_y);\n        deltaX += (long)(android_look_x * centerX);\n        deltaY += (long)(android_look_y * centerY);\n#endif')
     print("Applied Android input, camera, entry, presentation and scaling seams")
 
 

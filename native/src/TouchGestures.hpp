@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace keeper::touch {
-enum class Kind { Hover, LeftClick, RightClick, LeftDown, LeftUp, RightDown, RightUp, Pan, Zoom, Rotate };
+enum class Kind { Hover, LeftClick, RightClick, LeftDown, LeftUp, RightDown, RightUp, Pan, Zoom, Rotate, DragUp };
 struct Action { Kind kind; float x, y, dx = 0, dy = 0; };
 struct Settings { float slop = 24, pinch = 0.06f, rotate = 12; uint64_t holdMs = 450; };
 class Gestures {
@@ -17,9 +17,12 @@ public:
     void cancel();
     void setPanEnabled(bool enabled) { panEnabled = enabled; }
     void configure(Settings settings) { cfg = settings; }
+    float slop() const { return cfg.slop; }
+    // The single finger now down becomes a drag: moves hover, lifting emits DragUp.
+    bool captureAsDrag();
     std::vector<Action> take();
 private:
-    enum class Mode { Idle, One, LeftHeld, Pan, Two, RightHeld, Pinch, Rotate, Blocked };
+    enum class Mode { Idle, One, LeftHeld, Pan, Two, RightHeld, Pinch, Rotate, Blocked, Drag };
     struct Point { float x, y; };
     Settings cfg;
     Mode mode = Mode::Idle;

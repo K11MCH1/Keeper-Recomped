@@ -26,5 +26,10 @@ int main() {
     { Gestures g;g.setPanEnabled(false);g.down(1,100,100,0);g.move(1,150,100,60);g.up(1,160,100,100);auto a=g.take();assert(count(a,Kind::LeftDown)==1);assert(count(a,Kind::LeftUp)==1);assert(!count(a,Kind::Pan)); }
     // Large finger IDs, timestamp rollback, duplicate downs, and unknown ups are harmless.
     { Gestures g;g.down(INT64_MAX,100,100,1000);g.down(INT64_MAX,100,100,1001);g.tick(900);g.up(123,0,0,950);g.up(INT64_MAX,100,100,1100);auto a=g.take();assert(count(a,Kind::LeftClick)==1);assert(!count(a,Kind::LeftDown)); }
-    std::puts("PASS: 11 touch gesture scenarios on Android ARM64");
+    // A captured drag (double tap and hold) hovers instead of panning, never turns into a
+    // hold or a tap, and ends with exactly one DragUp; a second finger ends it too.
+    { Gestures g;g.down(1,100,100,0);assert(g.captureAsDrag());g.move(1,200,150,60);g.tick(900);g.up(1,220,160,1000);auto a=g.take();assert(count(a,Kind::DragUp)==1);assert(count(a,Kind::Hover)>=2);assert(!count(a,Kind::Pan));assert(!count(a,Kind::LeftDown));assert(!count(a,Kind::LeftClick)); }
+    { Gestures g;g.down(1,100,100,0);assert(g.captureAsDrag());g.down(2,200,100,30);assert(count(g.take(),Kind::DragUp)==1);g.up(2,200,100,60);g.up(1,100,100,70);auto a=g.take();assert(!count(a,Kind::DragUp));assert(!count(a,Kind::LeftClick)); }
+    { Gestures g;g.down(1,100,100,0);g.move(1,150,100,60);assert(!g.captureAsDrag());g.down(2,200,100,0);assert(!g.captureAsDrag()); }
+    std::puts("PASS: 14 touch gesture scenarios on Android ARM64");
 }

@@ -40,6 +40,7 @@ extern "C" void KfxAndroidConfigureWindow(SDL_Window* window) {
     }
 }
 extern "C" void KfxAndroidDrawOverlay(SDL_Renderer* renderer) {
+    KfxAndroidDrawTouchOverlay(renderer);
     if (!showFPS) return;
     float sx=1,sy=1;Uint8 r,g,b,a;
     SDL_GetRenderScale(renderer,&sx,&sy);SDL_GetRenderDrawColor(renderer,&r,&g,&b,&a);

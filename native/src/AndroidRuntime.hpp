@@ -18,6 +18,9 @@ Uint32 KfxAndroidPresentationGeneration(void);
 int KfxAndroidInputDiagnostics(void);
 int KfxAndroidCheatsEnabled(void);
 void KfxAndroidConfigureWindow(SDL_Window* window);
+void KfxAndroidStickAxes(float* x, float* y);
+void KfxAndroidPossessionLook(float* x, float* y);
+void KfxAndroidDrawTouchOverlay(SDL_Renderer* renderer);
 #ifdef __cplusplus
 }
 #endif
