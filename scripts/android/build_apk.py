@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -202,6 +203,9 @@ def build(args):
     # Resources and manifest.
     manifest = LAUNCHER / 'AndroidManifest.xml'
     text = manifest.read_text(encoding='utf-8')
+    # A rising version code makes every build an update; vivo's installer refuses
+    # to reinstall over an app with the same version code.
+    text = re.sub(r'android:versionCode="\d+"', f'android:versionCode="{args.version_code}"', text)
     if args.package_id:
         suffix = args.package_id.rsplit('.', 1)[-1]
         text = text.replace('android:label="Keeper Recomped"', f'android:label="Keeper Recomped ({suffix})"')
@@ -302,6 +306,7 @@ def main():
     p.add_argument('--compiler-manifest', type=Path, default=termux / 'COMPILER_PACKAGES.json', help='Signed-index verification of them')
     p.add_argument('--native-dir', type=Path, default=ROOT / f'build/android/native/{ABI}')
     p.add_argument('--allow-no-engine', action='store_true', help='Launcher-only build without engine libraries')
+    p.add_argument('--version-code', type=int, default=int(time.time() // 60), help='Default: build time in minutes')
     p.add_argument('--keystore', type=Path)
     p.add_argument('--keystore-password', default='android')
     p.add_argument('--sdk', type=Path, default=Path(os.environ.get('ANDROID_SDK_ROOT', LOCAL / 'Android/Sdk')))

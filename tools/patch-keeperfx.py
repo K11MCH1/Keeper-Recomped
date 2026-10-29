@@ -83,6 +83,9 @@ def main():
     replace("front_input.c", '    float movement_y = get_game_key_axis_value(Gkey_MoveDown, ignore_mods) - get_game_key_axis_value(Gkey_MoveUp, ignore_mods);\n', '    float movement_y = get_game_key_axis_value(Gkey_MoveDown, ignore_mods) - get_game_key_axis_value(Gkey_MoveUp, ignore_mods);\n#ifdef KFX_ANDROID\n    float android_x = 0.0f, android_y = 0.0f;\n    KfxAndroidStickAxes(&android_x, &android_y);\n    movement_x = clamp(movement_x + android_x, -1.0f, 1.0f);\n    movement_y = clamp(movement_y + android_y, -1.0f, 1.0f);\n#endif\n')
     replace("front_input.c", '    long x = GetMouseX();\n    long y = GetMouseY();\n    struct Thing* thing = thing_get(get_local_user_state()->controlled_thing_idx);', '    long x = GetMouseX();\n    long y = GetMouseY();\n#ifdef KFX_ANDROID\n    x = MyScreenWidth >> 1;\n    y = MyScreenHeight >> 1;\n#endif\n    struct Thing* thing = thing_get(get_local_user_state()->controlled_thing_idx);')
     replace("front_input.c", '        long deltaX = x - centerX;\n        long deltaY = y - centerY;', '        long deltaX = x - centerX;\n        long deltaY = y - centerY;\n#ifdef KFX_ANDROID\n        float android_look_x = 0.0f, android_look_y = 0.0f;\n        KfxAndroidPossessionLook(&android_look_x, &android_look_y);\n        deltaX += (long)(android_look_x * centerX);\n        deltaY += (long)(android_look_y * centerY);\n#endif')
+    # The runtime directory is absolute on Android, so prepare_file_path() paths are too;
+    # the CD loader hook would prefix the install folder again (net map hand sprites).
+    replace("frontend.cpp", "    if (input[0] != '*') {\n        snprintf(path_string", "#ifdef KFX_ANDROID\n    if (input[0] == '/') return input;\n#endif\n    if (input[0] != '*') {\n        snprintf(path_string")
     print("Applied Android input, camera, entry, presentation and scaling seams")
 
 
