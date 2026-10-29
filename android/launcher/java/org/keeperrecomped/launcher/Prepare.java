@@ -213,6 +213,15 @@ final class Prepare {
     }
 
     private void buildEngineStep(int from, int to) throws Exception {
+        File work = new File(EngineBuilder.root(ctx), "work");
+        try {
+            buildEngineStepIn(work, from, to);
+        } finally {
+            deleteTree(work); // the source and objects are only inputs, kept neither after success nor failure
+        }
+    }
+
+    private void buildEngineStepIn(File work, int from, int to) throws Exception {
         JSONObject state = State.load(ctx);
         String version = dataVersion(state);
         if (version.isEmpty())
@@ -243,7 +252,6 @@ final class Prepare {
         }
         if (!alpha)
             build = 0; // a stable tag: the build number is not part of its version
-        File work = new File(EngineBuilder.root(ctx), "work");
         int fetchEnd = from + (to - from) * 25 / 100, toolsEnd = from + (to - from) * 35 / 100;
         step(from + 2, fetchEnd, "Downloading KeeperFX " + version + " source");
         File src = KfxSource.fetch(ctx, ref, new File(work, "src"), (done, total) -> {
@@ -289,10 +297,9 @@ final class Prepare {
         state.put("engine", engine).put("unbuildable", "").put("engine_error", "");
         State.save(ctx, state);
         AppLog.i("engine for " + version + " built in " + engine.optLong("seconds") + " s: " + lib);
-        // The previous phone-built engine and the build inputs are no longer needed.
+        // The previous phone-built engine is no longer needed.
         if (previous != null && !lib.getParentFile().getPath().equals(new File(previous.optString("lib")).getParent()))
             deleteTree(new File(previous.optString("lib")).getParentFile());
-        deleteTree(work);
     }
 
     /** The KeeperFX version of the engine inside the app (assets/engine.json). */
