@@ -241,19 +241,31 @@ static void stepDigDrag() {
 
 // The LAN lobby keeps text input on for its chat line, which on a phone kept the keyboard
 // over the lobby (and its Start Game button). The lobby starts text input without the
-// keyboard; a tap on the chat line shows it and a tap elsewhere in the lobby hides it.
+// keyboard; a tap on the chat line or on an edit box shows it (the engine only asks SDL
+// when text input is off, so an edit box tapped in the lobby got no keyboard), and a tap
+// elsewhere in the lobby hides it.
 extern "C" void KfxAndroidStartQuietTextInput(void) {
     SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "0");
     LbStartTextInput();
     SDL_ResetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD);
 }
-static void lobbyKeyboard(float x, float y) {
-    if (frontend_menu_state != FeSt_NET_START) return;
+static bool textFieldAt(int gx, int gy) {
+    // Every button under the finger: the lobby's Lobby Name box lies on top of a settings
+    // row and the panel behind it.
+    for (int i = 0; i < ACTIVE_BUTTONS_COUNT; i++) {
+        auto* gbtn = &active_buttons[i];
+        if ((gbtn->flags & LbBtnF_Active) == 0 || (gbtn->flags & LbBtnF_Enabled) == 0
+         || !active_menus[static_cast<unsigned>(gbtn->gmenu_idx)].is_turned_on || !check_if_pos_is_over_button(gbtn, gx, gy)) continue;
+        if (gbtn->gbtype == LbBtnT_EditBox || gbtn->draw_call == frontnet_draw_current_message) return true;
+    }
+    return false;
+}
+static void textKeyboard(float x, float y) {
     SDL_Window* window = GetSDLWindowSystem()->GetSDLWindow();
     auto p = gamePosition(x,y);
-    auto* gbtn = buttonAt(static_cast<int>(p.x), static_cast<int>(p.y));
-    if (gbtn && gbtn->draw_call == frontnet_draw_current_message) SDL_StartTextInput(window);
-    else if (SDL_ScreenKeyboardShown(window)) SDL_StopTextInput(window); // the lobby restarts it quietly
+    if (textFieldAt(static_cast<int>(p.x), static_cast<int>(p.y))) SDL_StartTextInput(window);
+    else if (frontend_menu_state == FeSt_NET_START && SDL_ScreenKeyboardShown(window))
+        SDL_StopTextInput(window); // the lobby restarts it quietly
 }
 
 static void drain() {
@@ -272,7 +284,7 @@ static void drain() {
         switch (a.kind) {
         case Kind::LeftClick:
             if (digContext(a.x,a.y)) { pendingTap = {true, a.x, a.y, SDL_GetTicks()}; break; }
-            lobbyKeyboard(a.x,a.y);
+            textKeyboard(a.x,a.y);
             tap(); break;
         case Kind::RightClick: releaseClick(); button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP); break;
         case Kind::LeftDown: releaseClick(); button(MActn_LBUTTONDOWN); leftHeld = true; nextPickupAt = 0; break;
