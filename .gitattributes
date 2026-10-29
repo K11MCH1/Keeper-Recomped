@@ -8,6 +8,9 @@
 *.h text eol=lf
 *.cmake text eol=lf
 *.ps1 text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.patch text eol=lf -whitespace
 *.bat text eol=crlf
 # Preserve the supplied analysis pack's exact manifest-checked payload bytes.
 CE-Ghidra-MCP-Pack/** -text
