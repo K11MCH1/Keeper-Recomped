@@ -492,7 +492,7 @@ public final class LauncherActivity extends Activity {
         /** Text of a bundled licence (assets/licenses/name), for the Credits tab. */
         @JavascriptInterface
         public String license(String name) {
-            if (!name.matches("[A-Za-z0-9._-]+"))
+            if (!name.matches("[A-Za-z0-9._+/-]+") || name.contains(".."))
                 return "";
             try (java.io.InputStream in = getAssets().open("licenses/" + name)) {
                 return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
@@ -503,11 +503,27 @@ public final class LauncherActivity extends Activity {
 
         @JavascriptInterface
         public String licenses() {
+            java.util.List<String> files = new java.util.ArrayList<>();
             try {
-                String[] names = getAssets().list("licenses");
-                return new org.json.JSONArray(names == null ? new String[0] : names).toString();
+                collectLicenses("", files);
             } catch (Exception e) {
-                return "[]";
+                AppLog.i("licences: " + e.getMessage());
+            }
+            return new org.json.JSONArray(files).toString();
+        }
+
+        /** Every file under assets/licenses (the engine and compiler texts live in folders). */
+        private void collectLicenses(String dir, java.util.List<String> out) throws java.io.IOException {
+            String[] names = getAssets().list(dir.isEmpty() ? "licenses" : "licenses/" + dir);
+            if (names == null)
+                return;
+            for (String name : names) {
+                String path = dir.isEmpty() ? name : dir + "/" + name;
+                String[] sub = getAssets().list("licenses/" + path);
+                if (sub != null && sub.length > 0)
+                    collectLicenses(path, out);
+                else
+                    out.add(path);
             }
         }
 

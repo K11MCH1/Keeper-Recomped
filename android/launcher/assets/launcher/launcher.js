@@ -309,8 +309,14 @@ function loadLicenses() {
   kr.loaded.credits = true;
   let names = [];
   try { names = JSON.parse(bridge ? bridge.licenses() : '[]'); } catch (e) { names = []; }
+  // compiler/<package>-files/share/doc/<name>/<FILE> → "<package> · <FILE>"; native/dependency-x.txt → "x"
+  const label = (n) => {
+    const m = n.match(/^compiler\/([^/]+)-files\/.*\/([^/]+)$/);
+    if (m) return m[1] + ' · ' + m[2].replace(/\.txt$/i, '');
+    return n.replace(/^native\//, '').replace(/^dependency-/, '').replace(/(\.txt)+$/i, '');
+  };
   $('licenseList').innerHTML = names.length
-    ? names.map((n) => `<button class="btn small" data-license="${esc(n)}">${esc(n.replace(/\.txt$/, ''))}</button>`).join('')
+    ? names.map((n) => `<button class="btn small" data-license="${esc(n)}">${esc(label(n))}</button>`).join('')
     : '<p class="hint">No licence files in this build.</p>';
 }
 
