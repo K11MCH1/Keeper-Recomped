@@ -1,6 +1,6 @@
 """Publish this repository's history to GitHub without the private parts.
 
-The public repository (github.com/K11MCH1/DK-ARM64) carries the full history minus
+The public repository (github.com/K11MCH1/Keeper-Recomped) carries the full history minus
 the paths in EXCLUDE, removed from every commit. The rewrite is deterministic, so a
 later run produces the same commits for the same history and pushes fast-forward.
 Before pushing it refuses anything that looks like game data or a signing key.
@@ -20,7 +20,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-REMOTE = 'https://github.com/K11MCH1/DK-ARM64.git'
+REMOTE = 'https://github.com/K11MCH1/Keeper-Recomped.git'
 # Agent working notes and the Ghidra tooling stay local (the owner's decision).
 EXCLUDE = ['AGENTS.md', 'CLAUDE.md', 'CE-Ghidra-MCP-Pack', '.mcp.json', 'tools/start-ghidra.ps1']
 # Dungeon Keeper data, executables, archives, packages and keys never go public.
@@ -66,7 +66,7 @@ def main():
     p.add_argument('--keep', action='store_true', help='Keep the rewritten clone and print its path')
     args = p.parse_args()
 
-    work = Path(tempfile.mkdtemp(prefix='dk-arm64-publish-'))
+    work = Path(tempfile.mkdtemp(prefix='keeper-recomped-publish-'))
     try:
         git('clone', '--quiet', '--no-local', '--single-branch', '--branch', args.branch, str(ROOT), str(work / 'repo'), cwd=ROOT)
         repo = work / 'repo'

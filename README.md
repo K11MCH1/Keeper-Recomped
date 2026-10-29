@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="DK ARM64: Dungeon Keeper on Android, powered by KeeperFX" width="100%">
+  <img src="docs/images/banner.svg" alt="Keeper Recomped: Dungeon Keeper on Android, powered by KeeperFX" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/K11MCH1/DK-ARM64/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/K11MCH1/DK-ARM64?label=release&color=e3a63c"></a>
+  <a href="https://github.com/K11MCH1/Keeper-Recomped/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/K11MCH1/Keeper-Recomped?label=release&color=e3a63c"></a>
   <img alt="Android 15+" src="https://img.shields.io/badge/Android-15%2B-3ddc84?logo=android&logoColor=white">
   <img alt="ARM64" src="https://img.shields.io/badge/ABI-arm64--v8a-555">
   <img alt="Vulkan" src="https://img.shields.io/badge/Vulkan-OpenGL%20ES%20fallback-a41e22?logo=vulkan&logoColor=white">
@@ -12,13 +12,11 @@
 </p>
 
 > [!IMPORTANT]
-> **Unofficial fan project.** DK ARM64 is not affiliated with or endorsed by Electronic Arts, Bullfrog Productions or the KeeperFX team. It contains **no game data**: you need your own copy of Dungeon Keeper (GOG, EA app or the original CD).
+> **Unofficial fan project.** Keeper Recomped is not affiliated with or endorsed by Electronic Arts, Bullfrog Productions or the KeeperFX team. It contains **no game data**: you need your own copy of Dungeon Keeper (GOG, EA app or the original CD).
 
 ## 🏰 What it is
 
-**DK ARM64** brings Dungeon Keeper to Android phones. It runs [KeeperFX](https://keeperfx.net), the open-source remake of the Dungeon Keeper engine, compiled **natively for ARM64**: no emulator, no DOSBox. Frames reach the screen through **Vulkan**, the game is played with **touch controls** made for it, and a launcher app does the whole setup: it imports your Dungeon Keeper files, downloads KeeperFX, and compiles the game engine **on the phone itself**.
-
-The app installs as **Keeper Recomped**.
+**Keeper Recomped** brings Dungeon Keeper to Android phones. It runs [KeeperFX](https://keeperfx.net), the open-source remake of the Dungeon Keeper engine, compiled **natively for ARM64**: no emulator, no DOSBox. Frames reach the screen through **Vulkan**, the game is played with **touch controls** made for it, and a launcher app does the whole setup: it imports your Dungeon Keeper files, downloads KeeperFX, and compiles the game engine **on the phone itself**.
 
 | | |
 |---|---|
@@ -101,7 +99,7 @@ More detail: [docs/LAUNCHER.md](docs/LAUNCHER.md) (launcher and controls), [docs
 - **An internet connection** for the first setup (KeeperFX from keeperfx.net, engine source from GitHub).
 
 **Install**
-1. Download the APK from [Releases](https://github.com/K11MCH1/DK-ARM64/releases/latest) and install it (allow installs from your browser or file manager).
+1. Download the APK from [Releases](https://github.com/K11MCH1/Keeper-Recomped/releases/latest) and install it (allow installs from your browser or file manager).
 2. Copy your Dungeon Keeper folder to the phone, for example into `Download/`.
 3. Open **Keeper Recomped** → **Play** → **Choose folder…** and pick it.
 4. Tap **Prepare & Build**. It downloads and installs KeeperFX, then compiles the engine on the phone.
@@ -113,7 +111,7 @@ More detail: [docs/LAUNCHER.md](docs/LAUNCHER.md) (launcher and controls), [docs
 powershell -File tools/build-dependencies.ps1     # vcpkg libraries for arm64-android
 powershell -File tools/build-native.ps1           # KeeperFX + Android layer -> build/android/native
 python scripts/android/engine_kit.py              # libkrdeps.so + the on-phone engine kit
-python scripts/android/build_apk.py --output build/apk/dk-arm64.apk
+python scripts/android/build_apk.py --output build/apk/keeper-recomped.apk
 ```
 
 The on-phone compiler comes from verified Termux packages (`build_apk.py --compiler-packages / --compiler-manifest`, see `--help`).
@@ -144,6 +142,6 @@ KeeperFX is pinned in [`third_party.lock.json`](third_party.lock.json) and patch
 
 ## 📄 License
 
-- DK ARM64 is free software under the **GNU General Public License v2.0 or later** ([LICENSE](LICENSE)), the same license as KeeperFX.
+- Keeper Recomped is free software under the **GNU General Public License v2.0 or later** ([LICENSE](LICENSE)), the same license as KeeperFX.
 - Bundled third-party components keep their own licenses. Their full texts ship inside the app (Credits tab); the engine libraries' texts are also in [`android/game/assets/licenses`](android/game/assets/licenses).
 - *Dungeon Keeper* is © Electronic Arts. All trademarks belong to their owners. No original game files are included or distributed here.

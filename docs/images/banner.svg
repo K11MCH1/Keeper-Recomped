@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300">
-  <title>DK ARM64: Dungeon Keeper on Android, powered by KeeperFX</title>
+  <title>Keeper Recomped: Dungeon Keeper on Android, powered by KeeperFX</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#4a0e08"/>
@@ -22,7 +22,7 @@
     <path fill="#3A0B07" d="M41,57 L52,61 L42,64 Z M67,57 L56,61 L66,64 Z M53,66 L55,66 L55,74 L54,75 L53,74 Z"/>
   </g>
   <g font-family="Georgia,'Times New Roman',serif">
-    <text x="360" y="148" font-size="96" font-weight="700" fill="#e3a63c" letter-spacing="2">DK ARM64</text>
+    <text x="360" y="148" font-size="76" font-weight="700" fill="#e3a63c" letter-spacing="1">Keeper Recomped</text>
     <text x="364" y="196" font-size="30" fill="#f0e2c8">Dungeon Keeper on Android, powered by KeeperFX</text>
   </g>
   <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#d8c4a2">
