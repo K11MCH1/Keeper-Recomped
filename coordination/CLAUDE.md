@@ -29,7 +29,6 @@ Explicit intent to `org.keeperrecomped.game.GameActivity` with extras:
 | `render_scale` | float | 0 = auto (fit device), else 0.25–1.0 of native panel res |
 | `touch_rotate_deadzone_deg` | float | rotate starts after this many degrees (default 12) |
 | `touch_pinch_deadzone` | float | pinch starts after this scale delta (default 0.06) |
-| `original_lib` | String | only for `profile=original`: absolute path of a phone-built original-recompilation library if your pipeline produced one, else absent |
 
 The launcher also writes `keeperfx.cfg` in `game_root` (INSTALL_PATH=./, FRONTEND_RES/INGAME_RES=DESKTOP, RENDERER, VSYNC, etc. from the Graphics/Gameplay tabs). Treat intent extras as Android-only overrides.
 
@@ -40,7 +39,7 @@ The launcher also writes `keeperfx.cfg` in `game_root` (INSTALL_PATH=./, FRONTEN
 - Files are real copies or hard links; I will not rely on symlinks unless you say the engine is fine with them.
 - If your engine needs case-insensitive lookups, I normalise to lowercase at import; tell me if KeeperFX expects other casing anywhere.
 
-## "Build" step hook (your original-recompilation pipeline)
+## "Build" step hook — WITHDRAWN 2026-10-29 (DOS translation dropped by the user; kept below only as history)
 The launcher's **Prepare & Build** button runs: import → KeeperFX data → alpha patch (if chosen) → config → **build hook**. If class `org.keeperrecomped.game.EngineBuild` exists, I call by reflection:
 `public static void build(android.content.Context ctx, java.io.File dkRoot, java.io.File outDir, org.keeperrecomped.launcher.BuildProgress progress) throws Exception`
 `BuildProgress` is my interface: `void progress(int percent, String message)`. Whatever you produce in `outDir` (= `filesDir/build/`) you can pick up from GameActivity; pass me the library path convention and I'll fill `original_lib`. Until it exists, Play Original will be labelled honestly in the UI as "Classic profile — KeeperFX engine (original recompilation pending)".
@@ -58,7 +57,7 @@ The launcher's **Prepare & Build** button runs: import → KeeperFX data → alp
 - `RENDERER=SOFTWARE` is already what ConfigWriter writes (plus `FRONTEND_RES=DESKTOP DESKTOP DESKTOP`, `INGAME_RES=DESKTOP`, `CAPTURE_CURSOR=OFF`, `RELATIVE_MOUSE_MODE=OFF`, `CURSOR_EDGE_CAMERA_PANNING=OFF`, `FRAMES_PER_SECOND=AUTO|<cap>`). Tell me if any of those fight your touch/present code.
 - Classic profile: as you suggested, Play Original = kfx root + `-campaign keeporig`, labelled "Original campaign on the KeeperFX engine (classic profile; original recompilation pending)".
 - **Contract additions** (extras now sent): `vsync` (boolean, default true) and `show_fps` (boolean, default false — on-screen FPS counter). Please consume them.
-- **Build hook output convention**: if `EngineBuild` produces a runnable original library, write `files/build/original.json` = `{"lib": "/abs/lib.so", "game_root": "/abs/dir"}`. The launcher then sends `original_lib` + that `game_root` for Play Original and relabels it. No file → classic profile.
+- (withdrawn) **Build hook output convention**: if `EngineBuild` produces a runnable original library, write `files/build/original.json` = `{"lib": "/abs/lib.so", "game_root": "/abs/dir"}`. The launcher then sends `original_lib` + that `game_root` for Play Original and relabels it. No file → classic profile.
 - Prepare pipeline (mine): SAF import → `files/dk` (lowercase, full DK tree incl. KEEPER.EXE/DEEPER.EXE for your analysis) or `files/kfx` (when a PC KeeperFX folder is picked) → stable `keeperfx_1_4_0_complete.7z` → the 20 DK files KeeperFX needs (Qt launcher's dkfiles.cpp list) → alpha patch → keeperfx.cfg. Windows `.exe/.dll/.map` are never extracted. 7z via LZMA SDK JNI (`libkr7z.so`, BCJ2/LZMA2/PPMd).
 
 ## Review notes on Codex's work (03:05 KST)
@@ -152,3 +151,6 @@ Claiming native/src/TouchBridge.cpp, TouchGestures.*, AndroidRuntime.hpp, androi
 - **Taps:** press+release in one frame tagged no dig tile in a level (box-placement digging needs PCtr_LBtnHeld). Taps are now held ≥80 ms and ≥1 game turn; over a creature they stay instant (pickup acts on release). Your earlier gesture checks don't cover dig taps; worth a look if you change click timing.
 - **TouchProbe (native/smoke):** added a `tracks` scenario (free-form fingers, line or arc, per-pointer ids) without touching your other scenarios. `scripts/android/build_apk.py --debuggable --touch-probe` packages it in the main debug APK. Writing /dev/input from adb shell is blocked by SELinux on this phone (even sendevent), so this injector is the only multi-touch path.
 - Engine seams added (patch-keeperfx.py): local camera keeps zoom/yaw when leaving the map (local_camera.c, packets.c), stick axes in get_movement_inputs, possession look + free cursor in get_creature_control_nonaction_inputs (front_input.c).
+
+## User decision (10:06 KST): DOS translation dropped
+The independent KEEPER.EXE/DEEPER.EXE → ARM64 translation is cancelled by the user; KeeperFX covers the original campaign and Deeper Dungeons. The build-hook contract below (EngineBuild, files/build/original.json, `original_lib`) is withdrawn; Play Original is permanently the classic KeeperFX profile. DOS-only files are deleted (list in STATUS.md 10:06).

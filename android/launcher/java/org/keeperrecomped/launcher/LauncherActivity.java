@@ -278,8 +278,6 @@ public final class LauncherActivity extends Activity {
                 o.put("engine_info", new JSONObject(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)));
             } catch (Exception ignored) {
             }
-            o.put("original_build", GameLauncher.originalBuild(this) != null);
-            o.put("build_hook_present", classExists(Prepare.BUILD_HOOK));
             o.put("kfx_ready", new File(Paths.kfx(this), "fxdata").isDirectory() && new File(Paths.kfx(this), "data/bluepal.dat").isFile());
             o.put("running", PrepareService.isRunning());
             o.put("channel", settings.get("release_channel"));
@@ -294,15 +292,6 @@ public final class LauncherActivity extends Activity {
             return o;
         } catch (Exception e) {
             return new JSONObject();
-        }
-    }
-
-    private static boolean classExists(String name) {
-        try {
-            Class.forName(name);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
         }
     }
 

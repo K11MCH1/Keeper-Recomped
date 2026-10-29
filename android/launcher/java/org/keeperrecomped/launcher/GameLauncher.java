@@ -6,18 +6,14 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
-import org.json.JSONObject;
-
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Starts the engine (Codex's org.keeperrecomped.game.GameActivity) with the launch
  * contract in coordination/CLAUDE.md: game_root, profile, args, renderer, fps_cap,
- * render_scale, touch dead zones, show_fps, original_lib.
+ * render_scale, touch dead zones, show_fps.
  */
 final class GameLauncher {
     static final String GAME_ACTIVITY = "org.keeperrecomped.game.GameActivity";
@@ -31,22 +27,6 @@ final class GameLauncher {
             return true;
         } catch (PackageManager.NameNotFoundException | ClassNotFoundException e) {
             return false;
-        }
-    }
-
-    /**
-     * The original recompilation produced by the build hook, if any: the hook writes
-     * files/build/original.json = {"lib": "/abs/libX.so", "game_root": "/abs/dir"}.
-     */
-    static JSONObject originalBuild(Context c) {
-        File f = new File(Paths.build(c), "original.json");
-        if (!f.isFile())
-            return null;
-        try {
-            JSONObject o = new JSONObject(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
-            return new File(o.optString("lib")).isFile() ? o : null;
-        } catch (Exception e) {
-            return null;
         }
     }
 
@@ -74,24 +54,17 @@ final class GameLauncher {
         if (!s.bool("sound"))
             args.add("-nosound");
         String root = kfx.getPath();
-        String originalLib = null;
         if ("original".equals(profile)) {
-            JSONObject build = originalBuild(c);
-            if (build != null) {
-                originalLib = build.optString("lib");
-                root = build.optString("game_root", Paths.dk(c).getPath());
-            } else {
-                // Classic profile on the KeeperFX engine: its own root with only the
-                // original campaign, no mods and separate saves (see ClassicRoot).
-                try {
-                    File original = Prepare.syncClassic(c);
-                    ConfigWriter.write(original, s);
-                    root = original.getPath();
-                } catch (Exception e) {
-                    return "Cannot set up the original game: " + e.getMessage();
-                }
-                args.add("-nomods");
+            // Classic profile on the KeeperFX engine: its own root with only the
+            // original campaign, no mods and separate saves (see ClassicRoot).
+            try {
+                File original = Prepare.syncClassic(c);
+                ConfigWriter.write(original, s);
+                root = original.getPath();
+            } catch (Exception e) {
+                return "Cannot set up the original game: " + e.getMessage();
             }
+            args.add("-nomods");
         }
         for (String a : s.get("launch_options").trim().split("\\s+"))
             if (!a.isEmpty())
@@ -113,8 +86,6 @@ final class GameLauncher {
         i.putExtra("touch_rotate_deadzone_deg", (float) s.integer("touch_rotate_deadzone_deg"));
         i.putExtra("touch_pinch_deadzone", s.integer("touch_pinch_deadzone_pct") / 100f);
         i.putExtra("show_fps", s.bool("show_fps"));
-        if (originalLib != null)
-            i.putExtra("original_lib", originalLib);
         if (debug != null)
             i.putExtras(debug); // engineering builds only; see GameActivity
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

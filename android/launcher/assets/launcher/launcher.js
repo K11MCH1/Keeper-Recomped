@@ -78,9 +78,7 @@ const kr = {
     const ready = s.kfx_ready && state.prepared;
     $('playKfx').disabled = running || !ready || !s.engine;
     $('playOriginal').disabled = running || !ready || !s.engine;
-    $('originalCaption').textContent = s.original_build
-      ? 'Original game, recompiled for ARM64 from your files'
-      : 'Original campaign only, no mods, own saves — on the KeeperFX engine (original recompilation pending)';
+    $('originalCaption').textContent = 'Original campaign only, no mods, own saves — on the KeeperFX engine';
     $('kfxCaption').textContent = ready
       ? 'KeeperFX ' + (kv === 'folder' ? '' : kv || '') + (state.alpha_version ? ' alpha ' + state.alpha_version : '') + ' · campaigns, mods, multiplayer'
       : 'Prepare the game first';
@@ -96,7 +94,6 @@ const kr = {
     const dev = [];
     if (s.device) dev.push(`<dt>Device</dt><dd>${esc(s.device)}</dd>`);
     if (s.display) dev.push(`<dt>Display</dt><dd>${esc(s.display)}</dd>`);
-    dev.push(`<dt>Build hook</dt><dd>${s.build_hook_present ? 'present' : 'none'}</dd>`);
     $('deviceFacts').innerHTML = dev.join('');
   },
 

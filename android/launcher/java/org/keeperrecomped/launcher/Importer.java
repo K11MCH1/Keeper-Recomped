@@ -56,7 +56,6 @@ final class Importer {
         Node root;
         String path;      // display path relative to the picked folder
         boolean keeperfx; // a KeeperFX installation rather than plain Dungeon Keeper
-        boolean hasExe;   // KEEPER.EXE / KEEPER95.EXE / DEEPER.EXE present (original-recompilation input)
         long bytes;
         int files;
     }
@@ -116,7 +115,6 @@ final class Importer {
                 f.root = dir;
                 f.path = path.isEmpty() ? "/" : path;
                 f.keeperfx = dir.child("fxdata") != null;
-                f.hasExe = dir.child("keeper.exe") != null || dir.child("keeper95.exe") != null || dir.child("deeper.exe") != null;
                 measure(f, dir, true);
                 return f;
             }
@@ -147,14 +145,14 @@ final class Importer {
         return n.equals("dosbox") || n.startsWith(".") || n.equals("__installer") || n.equals("support");
     }
 
-    /** Windows binaries and launcher leftovers are of no use on Android. */
+    /** DOS/Windows binaries and launcher leftovers are of no use on Android. */
     static boolean skipFile(String name, boolean keeperfx) {
         String n = name.toLowerCase(Locale.ROOT);
-        if (n.equals("thumbs.db") || n.equals("desktop.ini") || n.endsWith(".part"))
+        if (n.equals("thumbs.db") || n.equals("desktop.ini") || n.endsWith(".part") || n.endsWith(".exe") || n.endsWith(".dll"))
             return true;
         if (!keeperfx)
-            return false; // keep KEEPER.EXE etc. for the original recompilation
-        return n.endsWith(".exe") || n.endsWith(".dll") || n.endsWith(".map") || n.endsWith(".log")
+            return false;
+        return n.endsWith(".map") || n.endsWith(".log")
                 || n.startsWith("unins") || n.startsWith("keeperfx-launcher") || n.equals("launch.sh");
     }
 

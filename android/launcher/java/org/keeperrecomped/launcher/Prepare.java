@@ -14,7 +14,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
@@ -32,7 +31,7 @@ import java.util.zip.ZipFile;
  *
  * Prepare: import the picked folder → KeeperFX stable "complete" release (unless a
  * KeeperFX folder was imported) → the 20 original DK files KeeperFX needs → alpha
- * patch (Alpha channel) → keeperfx.cfg → engine build hook (original recompilation).
+ * patch (Alpha channel) → keeperfx.cfg → the classic root for Play Original.
  * Windows binaries in KeeperFX archives are never extracted: the Android engine is
  * the APK's native library.
  */
@@ -52,8 +51,6 @@ final class Prepare {
             "redpal.col", "redpall.dat", "slab0-0.dat", "slab0-1.dat", "vampal.pal", "whitepal.col"};
     static final String[] DK_SOUND = {"atmos1.sbk", "atmos2.sbk", "bullfrog.sbk"};
     static final String[] DK_MUSIC = {"keeper02.ogg", "keeper03.ogg", "keeper04.ogg", "keeper05.ogg", "keeper06.ogg", "keeper07.ogg"};
-
-    static final String BUILD_HOOK = "org.keeperrecomped.game.EngineBuild";
 
     private final Context ctx;
     private final Settings settings;
@@ -133,8 +130,6 @@ final class Prepare {
                 state.put("kfx_version", "folder");
                 // KeeperFX folders hold the DK files it needs; keep a lowercase copy for the original profile.
                 copyDkSubset(kfx, dk);
-            } else {
-                state.put("dk_has_exe", found.hasExe);
             }
             State.save(ctx, state);
         } else if (!new File(dk, "data/bluepal.dat").isFile() && !new File(kfx, "data/bluepal.dat").isFile()) {
@@ -155,10 +150,8 @@ final class Prepare {
         fromTemplates(kfx);
         ConfigWriter.write(kfx, settings);
 
-        step(92, 94, "Setting up the original game");
+        step(92, 100, "Setting up the original game");
         syncClassic(ctx);
-
-        runBuildHook(94, 100);
 
         state = State.load(ctx);
         state.put("prepared", true).put("prepared_at", now());
@@ -251,34 +244,6 @@ final class Prepare {
         syncClassic(ctx);
         base = 100; span = 0; label = "Up to date";
         emit(1, null);
-    }
-
-    private void runBuildHook(int from, int to) throws Exception {
-        Class<?> hook;
-        try {
-            hook = Class.forName(BUILD_HOOK);
-        } catch (ClassNotFoundException e) {
-            AppLog.i("no engine build hook in this APK");
-            State.put(ctx, "build_hook", false);
-            return;
-        }
-        step(from, to, "Building");
-        Method build = hook.getMethod("build", Context.class, File.class, File.class, BuildProgress.class);
-        File out = Paths.build(ctx);
-        out.mkdirs();
-        build.invoke(null, ctx, Paths.dk(ctx), out, new BuildProgress() {
-            @Override
-            public void progress(int percent, String message) {
-                emit(percent / 100.0, message);
-            }
-
-            @Override
-            public boolean cancelled() {
-                return cancelled;
-            }
-        });
-        State.put(ctx, "build_hook", true);
-        State.put(ctx, "built_at", now());
     }
 
     // ---- Workshop ----

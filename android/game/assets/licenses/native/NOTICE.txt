@@ -4,6 +4,6 @@ Dungeon Keeper: Bullfrog Productions and its rights holders. Original proprietar
 KeeperFX: KeeperFX contributors, GNU GPL version 2 or later.
 Android integration and gesture implementation: project contributors.
 SDL3 Java and native components: SDL contributors; see included SDL notice.
-This build uses CPU world rasterization with Vulkan/GLES presentation. Classic mode uses KeeperFX's original campaign and classic rules; original x86 pseudocode exports are separate analysis artifacts.
+This build uses CPU world rasterization with Vulkan/GLES presentation. Classic mode uses KeeperFX's original campaign and classic rules.
 
 Native dependencies and exact source references are listed in index.json. Reproducible source checkout instructions and build manifests are in the project repository.

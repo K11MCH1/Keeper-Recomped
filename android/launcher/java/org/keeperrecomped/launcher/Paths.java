@@ -20,9 +20,6 @@ final class Paths {
      */
     static File original(Context c) { return new File(c.getFilesDir(), "original"); }
 
-    /** Output of the engine build hook (original recompilation). */
-    static File build(Context c) { return new File(c.getFilesDir(), "build"); }
-
     /** Resumable downloads; removed once extracted unless the player keeps them. */
     static File downloads(Context c) { return new File(c.getFilesDir(), "downloads"); }
 

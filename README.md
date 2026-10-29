@@ -19,9 +19,9 @@ Engine libraries: `tools/build-dependencies.ps1` then `tools/build-native.ps1` (
 | `android/launcher/` | Launcher app: WebView UI, prepare pipeline, keeperfx.net services, manifest (Claude) |
 | `android/game/` | SDL3 Java glue + GameActivity (Codex) |
 | `native/` | Android entry, touch gestures, build manifest, overlay ports, exported engine patches (Codex) |
-| `tools/` | Engine build/patch scripts, Ghidra helpers (Codex) |
+| `tools/` | Engine build/patch scripts, Ghidra pack starter (Codex) |
 | `scripts/android/` | APK builder, FPS probe, dev download relay (Claude) |
 | `coordination/` | How Claude and Codex split and handed off the work |
-| `third_party/`, `build/`, `analysis/` | Ignored: source checkouts, outputs, decompilation exports |
+| `third_party/`, `build/` | Ignored: source checkouts, build outputs |
 
 KeeperFX is © the KeeperFX team and contributors (GPL-2.0). Dungeon Keeper is © Bullfrog Productions / Electronic Arts.

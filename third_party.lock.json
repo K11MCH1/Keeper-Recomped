@@ -16,10 +16,6 @@
       "url": "https://github.com/microsoft/vcpkg.git",
       "commit": "15b12b99a227d51e21c86dffd40385439eac87a0"
     },
-    "ghidra-lx-loader": {
-      "url": "https://github.com/yetmorecode/ghidra-lx-loader.git",
-      "commit": "60bae5199fdada5b3b825741a94bfbbe04cb7a5f"
-    },
     "centijson": {
       "url": "https://github.com/mity/centijson.git",
       "commit": "8c7a5fb42d9f55044d60592809288164adb4ca95"

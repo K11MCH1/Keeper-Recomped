@@ -12,12 +12,6 @@
     "notice": "vcpkg-LICENSE.txt.txt"
   },
   {
-    "name": "ghidra-lx-loader",
-    "source": "https://github.com/yetmorecode/ghidra-lx-loader.git",
-    "commit": "60bae5199fdada5b3b825741a94bfbbe04cb7a5f",
-    "notice": "ghidra-lx-loader-LICENSE.txt"
-  },
-  {
     "name": "enet6",
     "source": "https://github.com/SirLynix/enet6.git",
     "commit": "bf0003fb0004b12ff1d2b0c51c7c7e9a0d2d7732",

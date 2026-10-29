@@ -41,12 +41,7 @@ def main():
                 package.extractall(base, filter="data")
     run("py", "-3.13", str(ROOT / "tools/patch-keeperfx.py"))
     run("py", "-3.13", str(ROOT / "tools/patch-lua.py"))
-    patch = ROOT / "tools/ghidra/loader-final-page.patch"
-    destination = base / "ghidra-lx-loader"
-    result = subprocess.run(["git","-C",str(destination),"apply","--reverse","--check",str(patch)], capture_output=True)
-    if result.returncode:
-        run("git","-C",str(destination),"apply",str(patch))
-    print("Upstream revisions verified; Android and LE loader patches applied")
+    print("Upstream revisions verified; Android patches applied")
 
 
 if __name__ == "__main__":
