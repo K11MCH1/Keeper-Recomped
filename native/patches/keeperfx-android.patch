@@ -455,6 +455,40 @@ index c3bc1d7..16ce813 100644
      // Restore campaign-layer sounds before creature configs load, so creature cfg custom
      // sounds are added to the already-restored bank (not wiped afterwards).
      sound_restore_to_campaign_snapshot();
+diff --git a/src/net_matchmaking.c b/src/net_matchmaking.c
+index be6cd87..d554d24 100644
+--- a/src/net_matchmaking.c
++++ b/src/net_matchmaking.c
+@@ -17,6 +17,9 @@
+  */
+ /******************************************************************************/
+ #include "pre_inc.h"
++#ifdef KFX_ANDROID
++#include "AndroidRuntime.hpp"
++#endif
+ #include "net_matchmaking.h"
+ #include "bflib_basics.h"
+ #include "ver_defs.h"
+@@ -127,6 +130,9 @@ static void resolve_public_address(int32_t address_family, char *output)
+     CURL *handle = curl_easy_init();
+     if (!handle) return;
+     LbNetLog("Matchmaking: resolving address via \"%s\"\n", matchmaking_ip_url);
++#ifdef KFX_ANDROID
++    if (KfxAndroidCaBundle()) curl_easy_setopt(handle, CURLOPT_CAINFO, KfxAndroidCaBundle());
++#endif
+     curl_easy_setopt(handle, CURLOPT_URL, matchmaking_ip_url);
+     curl_easy_setopt(handle, CURLOPT_IPRESOLVE, (long)address_family);
+     curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, (long)CONNECT_TIMEOUT_MS);
+@@ -383,6 +389,9 @@ static int matchmaking_connect_thread(void *request)
+             return -1;
+         }
+         LbNetLog("Matchmaking: connecting to \"%s\"\n", matchmaking_ws_url);
++#ifdef KFX_ANDROID
++        if (KfxAndroidCaBundle()) curl_easy_setopt(curl_handle, CURLOPT_CAINFO, KfxAndroidCaBundle());
++#endif
+         curl_easy_setopt(curl_handle, CURLOPT_URL, matchmaking_ws_url);
+         curl_easy_setopt(curl_handle, CURLOPT_CONNECT_ONLY, 2L);
+         curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT_MS, (int32_t)CONNECT_TIMEOUT_MS);
 diff --git a/src/packets.c b/src/packets.c
 index f974371..62b5559 100644
 --- a/src/packets.c

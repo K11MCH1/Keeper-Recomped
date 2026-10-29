@@ -53,6 +53,8 @@ public final class GameActivity extends SDLActivity {
         args.add("--rotate-deadzone=" + getIntent().getFloatExtra("touch_rotate_deadzone_deg", 8));
         args.add("--pinch-deadzone=" + getIntent().getFloatExtra("touch_pinch_deadzone", .12f));
         args.add("--rotate-with-fingers=" + (getIntent().getBooleanExtra("touch_rotate_with_fingers", true) ? "1" : "0"));
+        String caBundle = getIntent().getStringExtra("ca_bundle");
+        if (caBundle != null) args.add("--ca-bundle=" + caBundle);
         args.add("--vsync=" + (getIntent().getBooleanExtra("vsync",true) ? "1" : "0"));
         args.add("--show-fps=" + (getIntent().getBooleanExtra("show_fps",false) ? "1" : "0"));
         // SDL lists only the current display mode at startup (often 60 Hz); the engine's

@@ -91,6 +91,11 @@ def main():
     for name in ["frontend.cpp", "frontmenu_net.c"]:
         include(name)
     replace("frontend.cpp", "          turn_on_menu(GMnu_FENET_START);\n          LbStartTextInput();", "          turn_on_menu(GMnu_FENET_START);\n#ifdef KFX_ANDROID\n          KfxAndroidStartQuietTextInput();\n#else\n          LbStartTextInput();\n#endif")
+    # libcurl finds no CA certificates on Android, so online matchmaking (wss://) failed the
+    # TLS check; the launcher exports the phone's trusted CAs and both handles use them.
+    include("net_matchmaking.c")
+    replace("net_matchmaking.c", "    curl_easy_setopt(handle, CURLOPT_URL, matchmaking_ip_url);", "#ifdef KFX_ANDROID\n    if (KfxAndroidCaBundle()) curl_easy_setopt(handle, CURLOPT_CAINFO, KfxAndroidCaBundle());\n#endif\n    curl_easy_setopt(handle, CURLOPT_URL, matchmaking_ip_url);")
+    replace("net_matchmaking.c", "        curl_easy_setopt(curl_handle, CURLOPT_URL, matchmaking_ws_url);", "#ifdef KFX_ANDROID\n        if (KfxAndroidCaBundle()) curl_easy_setopt(curl_handle, CURLOPT_CAINFO, KfxAndroidCaBundle());\n#endif\n        curl_easy_setopt(curl_handle, CURLOPT_URL, matchmaking_ws_url);")
     replace("frontmenu_net.c", "    if (!LbIsTextInputActive()) {\n        LbStartTextInput();\n    }", "    if (!LbIsTextInputActive()) {\n#ifdef KFX_ANDROID\n        KfxAndroidStartQuietTextInput();\n#else\n        LbStartTextInput();\n#endif\n    }")
     print("Applied Android input, camera, entry, presentation and scaling seams")
 

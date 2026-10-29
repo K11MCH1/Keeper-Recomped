@@ -19,6 +19,7 @@ static int displayMaxHz = 0; // from GameActivity: the panel's highest refresh r
 static bool vsync = true, showFPS = false;
 static bool inputDiagnostics = false;
 static bool cheatsEnabled = false;
+static std::string caBundle; // the phone's trusted CAs as PEM (written by the launcher), for libcurl
 static double measuredFPS = 0;
 extern "C" const char* KfxAndroidPresentationDriver(void) { return presentation.c_str(); }
 extern "C" float KfxAndroidRenderScale(void) { return renderScale; }
@@ -26,6 +27,7 @@ extern "C" int KfxAndroidFrameCap(void) { return frameCap; }
 extern "C" int KfxAndroidVsync(void) { return vsync ? 1 : 0; }
 extern "C" int KfxAndroidInputDiagnostics(void) { return inputDiagnostics ? 1 : 0; }
 extern "C" int KfxAndroidCheatsEnabled(void) { return cheatsEnabled ? 1 : 0; }
+extern "C" const char* KfxAndroidCaBundle(void) { return caBundle.empty() ? nullptr : caBundle.c_str(); }
 extern "C" void KfxAndroidConfigureWindow(SDL_Window* window) {
     float rate=frameCap>0?static_cast<float>(frameCap):displayMaxHz>0?static_cast<float>(displayMaxHz):60.0f;
     SDL_DisplayID display=SDL_GetDisplayForWindow(window);
@@ -100,6 +102,7 @@ extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
         else if (arg.starts_with("--rotate-deadzone=")) rotate = std::clamp(std::strtof(value("--rotate-deadzone=").c_str(), nullptr), 5.0f, 45.0f);
         else if (arg.starts_with("--pinch-deadzone=")) pinch = std::clamp(std::strtof(value("--pinch-deadzone=").c_str(), nullptr), .02f, .3f);
         else if (arg.starts_with("--rotate-with-fingers=")) rotateWithFingers=value("--rotate-with-fingers=")!="0";
+        else if (arg.starts_with("--ca-bundle=")) caBundle=value("--ca-bundle=");
         else if (arg.starts_with("--vsync=")) vsync=value("--vsync=")!="0";
         else if (arg.starts_with("--show-fps=")) showFPS=value("--show-fps=")=="1";
         else if (arg.starts_with("--display-max-hz=")) displayMaxHz=std::clamp(std::atoi(value("--display-max-hz=").c_str()), 0, 165);

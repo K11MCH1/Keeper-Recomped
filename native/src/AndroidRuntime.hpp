@@ -22,6 +22,7 @@ void KfxAndroidStickAxes(float* x, float* y);
 void KfxAndroidPossessionLook(float* x, float* y);
 void KfxAndroidDrawTouchOverlay(SDL_Renderer* renderer);
 void KfxAndroidStartQuietTextInput(void);
+const char* KfxAndroidCaBundle(void);
 #ifdef __cplusplus
 }
 #endif
