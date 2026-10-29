@@ -68,7 +68,8 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 **Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, level start/gestures/FPS in the main APK (after Codex fixes the blockers; Codex verified gestures + 120 FPS on its own lowercase test tree).
 
 **Test-environment facts:**
-- Phone has **no internet** (Wi-Fi off, cellular IMS only). Debug builds use `python scripts/android/dev_relay.py` (background) + `adb -s 9125335101BA reverse tcp:8765 tcp:8765` + launch extra `--es debug_relay http://127.0.0.1:8765` (persisted in prefs).
+- Update 2026-10-29 13:12: the NX809J is on the home Wi-Fi with its own internet; its saved `debug_relay` pref was cleared (`am start … --es debug_relay ''`), `adb reverse tcp:8765` removed, the PC relay stopped, and the News tab then loaded directly (API cache deleted first). The relay notes below are for a phone without internet.
+- Phone had **no internet** (Wi-Fi off, cellular IMS only). Debug builds use `python scripts/android/dev_relay.py` (background) + `adb -s 9125335101BA reverse tcp:8765 tcp:8765` + launch extra `--es debug_relay http://127.0.0.1:8765` (persisted in prefs).
 - ROM sets `log.tag=S`: logcat is empty for apps. Read `adb shell run-as org.keeperrecomped.app tail files/logs/launcher.log` and `files/kfx/keeperfx.log`.
 - Phone is usually on keyguard. Debug-only `--ez debug_show_when_locked true` shows launcher (and game, forwarded) above it without unlocking. Wake: `adb shell input keyevent KEYCODE_WAKEUP`.
 - Drive the page: `--es debug_action tab:<name>|prepare|update|play:keeperfx|play:original|cancel`.
