@@ -69,10 +69,14 @@ void Gestures::move(int64_t id, float x, float y, uint64_t ms) {
         float rotation = angleDifference(degrees, angle);
         if (std::fabs(scale) > cfg.pinch || std::fabs(rotation) > cfg.rotate || distance(center.x-start.x,center.y-start.y) > cfg.slop) moved = true;
         if (mode == Mode::Two && span >= cfg.slop * 2) {
-            // Pinch and rotation are exclusive until every participating finger lifts.
-            // Rotation requires a stable span; a zoom with angle jitter stays a zoom.
-            if (std::fabs(scale) >= cfg.pinch) mode = Mode::Pinch;
-            else if (std::fabs(rotation) >= cfg.rotate && std::fabs(scale) < cfg.pinch * .5f) mode = Mode::Rotate;
+            // Pinch and rotation are exclusive until every participating finger lifts. The
+            // gesture becomes whichever has gone further past its own dead zone: a zoom with
+            // angle jitter stays a zoom, and a wrist twist that also changes the finger
+            // spacing (most do) still rotates.
+            float pinched = std::fabs(scale) / cfg.pinch, turned = std::fabs(rotation) / cfg.rotate;
+            if (std::max(pinched, turned) >= 1) mode = turned > pinched ? Mode::Rotate : Mode::Pinch;
+        } else if (mode == Mode::Pinch && std::fabs(rotation) >= cfg.rotate * 3) {
+            mode = Mode::Rotate; // the fingers spread first, but it is clearly a twist
         }
         if (mode == Mode::Pinch && previousSpan > 0 && length > 0) emit(Kind::Zoom, center, std::log(length/previousSpan));
         else if (mode == Mode::Rotate) emit(Kind::Rotate, center, angleDifference(degrees, previousAngle));

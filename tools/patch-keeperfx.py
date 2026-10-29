@@ -86,6 +86,12 @@ def main():
     # The runtime directory is absolute on Android, so prepare_file_path() paths are too;
     # the CD loader hook would prefix the install folder again (net map hand sprites).
     replace("frontend.cpp", "    if (input[0] != '*') {\n        snprintf(path_string", "#ifdef KFX_ANDROID\n    if (input[0] == '/') return input;\n#endif\n    if (input[0] != '*') {\n        snprintf(path_string")
+    # The LAN lobby's chat line keeps text input on; start it without the soft keyboard
+    # (a tap on the chat line shows it, see TouchBridge.cpp).
+    for name in ["frontend.cpp", "frontmenu_net.c"]:
+        include(name)
+    replace("frontend.cpp", "          turn_on_menu(GMnu_FENET_START);\n          LbStartTextInput();", "          turn_on_menu(GMnu_FENET_START);\n#ifdef KFX_ANDROID\n          KfxAndroidStartQuietTextInput();\n#else\n          LbStartTextInput();\n#endif")
+    replace("frontmenu_net.c", "    if (!LbIsTextInputActive()) {\n        LbStartTextInput();\n    }", "    if (!LbIsTextInputActive()) {\n#ifdef KFX_ANDROID\n        KfxAndroidStartQuietTextInput();\n#else\n        LbStartTextInput();\n#endif\n    }")
     print("Applied Android input, camera, entry, presentation and scaling seams")
 
 

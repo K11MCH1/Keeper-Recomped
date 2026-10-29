@@ -132,10 +132,12 @@ final class Settings {
         // Also shown, reversed, under Play → Game version as "Delete downloaded patches after install."
         bool("advanced", "Launcher", "keep_downloads", false, "Keep downloaded archives", "Otherwise they are deleted after installing.");
         choice("advanced", "Launcher", "download_server", "keeperfx.net", "Download Server", null, "keeperfx.net|keeperfx.net");
-        integer("advanced", "Touch tuning", "touch_rotate_deadzone_deg", 12, 2, 45, "Rotate dead zone (degrees)",
-                "Twist needed before a two-finger gesture rotates, so pinching does not.");
-        integer("advanced", "Touch tuning", "touch_pinch_deadzone_pct", 6, 1, 30, "Pinch dead zone (%)",
-                "Spread change needed before a two-finger gesture zooms.");
+        bool("controls", "Camera", "touch_rotate_with_fingers", true, "Twist turns the view with your fingers",
+                "Two-finger rotation: the map turns the way your fingers twist. Off turns it the other way.");
+        integer("controls", "Camera", "touch_rotate_deadzone_deg", 8, 5, 45, "Rotate dead zone (degrees)",
+                "Twist needed before a two-finger gesture rotates. Lower rotates sooner.");
+        integer("controls", "Camera", "touch_pinch_deadzone_pct", 12, 2, 30, "Pinch dead zone (%)",
+                "Change in finger spacing needed before a two-finger gesture zooms. Higher keeps twists from zooming.");
     }
 
     private final SharedPreferences prefs;

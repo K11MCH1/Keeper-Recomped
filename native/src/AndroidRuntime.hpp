@@ -10,7 +10,7 @@ const char* KfxAndroidPresentationDriver(void);
 float KfxAndroidRenderScale(void);
 int KfxAndroidFrameCap(void);
 int KfxAndroidVsync(void);
-void KfxAndroidConfigureTouch(float slop, float pinch, float rotate);
+void KfxAndroidConfigureTouch(float slop, float pinch, float rotate, int rotate_with_fingers);
 void KfxAndroidApplyCamera(void);
 void KfxAndroidFramePresented(void);
 void KfxAndroidDrawOverlay(SDL_Renderer* renderer);
@@ -21,6 +21,7 @@ void KfxAndroidConfigureWindow(SDL_Window* window);
 void KfxAndroidStickAxes(float* x, float* y);
 void KfxAndroidPossessionLook(float* x, float* y);
 void KfxAndroidDrawTouchOverlay(SDL_Renderer* renderer);
+void KfxAndroidStartQuietTextInput(void);
 #ifdef __cplusplus
 }
 #endif

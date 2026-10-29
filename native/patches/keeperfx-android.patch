@@ -213,10 +213,20 @@ index 2ba40db..fbea870 100644
  
          // Map to the range -255 to 255
 diff --git a/src/frontend.cpp b/src/frontend.cpp
-index 35098cc..0bce139 100644
+index 35098cc..d2b623a 100644
 --- a/src/frontend.cpp
 +++ b/src/frontend.cpp
-@@ -2606,6 +2606,9 @@ void reinit_all_menus(void)
+@@ -17,6 +17,9 @@
+  */
+ /******************************************************************************/
+ #include "pre_inc.h"
++#ifdef KFX_ANDROID
++#include "AndroidRuntime.hpp"
++#endif
+ #include "observer.h"
+ #include "kfx/renderer/RendererManager.h"
+ #include "frontend.h"
+@@ -2606,6 +2609,9 @@ void reinit_all_menus(void)
  
  const char * mdlf_for_cd(const char * input)
  {
@@ -226,6 +236,44 @@ index 35098cc..0bce139 100644
      if (input[0] != '*') {
          snprintf(path_string, sizeof(path_string), "%s/%s", install_info.inst_path, input); // todo check out
          return path_string;
+@@ -2854,7 +2860,11 @@ FrontendMenuState frontend_setup_state(FrontendMenuState nstate)
+       case FeSt_NET_START:
+           frontnet_start_setup();
+           turn_on_menu(GMnu_FENET_START);
++#ifdef KFX_ANDROID
++          KfxAndroidStartQuietTextInput();
++#else
+           LbStartTextInput();
++#endif
+           set_flag(local_system_flags, GSF_NetworkActive);
+           set_pointer_graphic_menu();
+           break;
+diff --git a/src/frontmenu_net.c b/src/frontmenu_net.c
+index 694eb7a..a28e416 100644
+--- a/src/frontmenu_net.c
++++ b/src/frontmenu_net.c
+@@ -17,6 +17,9 @@
+  */
+ /******************************************************************************/
+ #include "pre_inc.h"
++#ifdef KFX_ANDROID
++#include "AndroidRuntime.hpp"
++#endif
+ #include "kfx/renderer/RendererManager.h"
+ #include "frontmenu_net.h"
+ #include "globals.h"
+@@ -129,7 +132,11 @@ TbBool frontnet_start_input(void)
+         return false;
+     }
+     if (!LbIsTextInputActive()) {
++#ifdef KFX_ANDROID
++        KfxAndroidStartQuietTextInput();
++#else
+         LbStartTextInput();
++#endif
+     }
+     if (lbInkey == KC_RETURN) {
+         if (local_state.mp_message_text[0] != '\0') {
 diff --git a/src/kfx/platform/PlatformLinux.cpp b/src/kfx/platform/PlatformLinux.cpp
 index 19edf03..784d938 100644
 --- a/src/kfx/platform/PlatformLinux.cpp

@@ -6,7 +6,7 @@
 namespace keeper::touch {
 enum class Kind { Hover, LeftClick, RightClick, LeftDown, LeftUp, RightDown, RightUp, Pan, Zoom, Rotate, DragUp };
 struct Action { Kind kind; float x, y, dx = 0, dy = 0; };
-struct Settings { float slop = 24, pinch = 0.06f, rotate = 12; uint64_t holdMs = 450; };
+struct Settings { float slop = 24, pinch = 0.12f, rotate = 8; uint64_t holdMs = 450; };
 class Gestures {
 public:
     explicit Gestures(Settings settings = {}) : cfg(settings) {}

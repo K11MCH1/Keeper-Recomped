@@ -27,8 +27,9 @@ Explicit intent to `org.keeperrecomped.game.GameActivity` with extras:
 | `renderer` | String | `vulkan` (default) or `gles` |
 | `fps_cap` | int | presentation cap; 0 = display max refresh (user phone: 144 Hz) |
 | `render_scale` | float | 0 = auto (fit device), else 0.25–1.0 of native panel res |
-| `touch_rotate_deadzone_deg` | float | rotate starts after this many degrees (default 12) |
-| `touch_pinch_deadzone` | float | pinch starts after this scale delta (default 0.06) |
+| `touch_rotate_deadzone_deg` | float | rotate starts after this many degrees (default 8) |
+| `touch_pinch_deadzone` | float | pinch starts after this scale delta (default 0.12) |
+| `touch_rotate_with_fingers` | boolean | two-finger twist turns the map with the fingers (default true); engine arg `--rotate-with-fingers=0/1` |
 
 The launcher also writes `keeperfx.cfg` in `game_root` (INSTALL_PATH=./, FRONTEND_RES/INGAME_RES=DESKTOP, RENDERER, VSYNC, etc. from the Graphics/Gameplay tabs). Treat intent extras as Android-only overrides.
 

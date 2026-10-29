@@ -25,6 +25,7 @@
 #include "globals.h"
 #include "engine_lenses.h"
 #include "creature_control.h"
+#include "frontmenu_net.h"
 #include <jni.h>
 #include <atomic>
 #include <algorithm>
@@ -77,8 +78,10 @@ static void tapKey(SDL_Scancode scancode, SDL_Keycode key) {
     if (pushKey(scancode, key, true)) keyReleases.push_back({scancode, key, SDL_GetTicks() + 120});
 }
 
-extern "C" void KfxAndroidConfigureTouch(float slop, float pinch, float rotate) {
+static bool rotateWithFingers = true;
+extern "C" void KfxAndroidConfigureTouch(float slop, float pinch, float rotate, int rotate_with_fingers) {
     gestures.configure({slop, pinch, rotate, 450});
+    rotateWithFingers = rotate_with_fingers != 0;
 }
 static SDL_FPoint gamePosition(float x, float y) {
     int ww = 0, wh = 0;
@@ -236,6 +239,23 @@ static void stepDigDrag() {
     }
 }
 
+// The LAN lobby keeps text input on for its chat line, which on a phone kept the keyboard
+// over the lobby (and its Start Game button). The lobby starts text input without the
+// keyboard; a tap on the chat line shows it and a tap elsewhere in the lobby hides it.
+extern "C" void KfxAndroidStartQuietTextInput(void) {
+    SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "0");
+    LbStartTextInput();
+    SDL_ResetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD);
+}
+static void lobbyKeyboard(float x, float y) {
+    if (frontend_menu_state != FeSt_NET_START) return;
+    SDL_Window* window = GetSDLWindowSystem()->GetSDLWindow();
+    auto p = gamePosition(x,y);
+    auto* gbtn = buttonAt(static_cast<int>(p.x), static_cast<int>(p.y));
+    if (gbtn && gbtn->draw_call == frontnet_draw_current_message) SDL_StartTextInput(window);
+    else if (SDL_ScreenKeyboardShown(window)) SDL_StopTextInput(window); // the lobby restarts it quietly
+}
+
 static void drain() {
     for (const auto& a : gestures.take()) {
         if (digDrag != DigDrag::None && (a.kind == Kind::Hover || a.kind == Kind::DragUp)) {
@@ -252,6 +272,7 @@ static void drain() {
         switch (a.kind) {
         case Kind::LeftClick:
             if (digContext(a.x,a.y)) { pendingTap = {true, a.x, a.y, SDL_GetTicks()}; break; }
+            lobbyKeyboard(a.x,a.y);
             tap(); break;
         case Kind::RightClick: releaseClick(); button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP); break;
         case Kind::LeftDown: releaseClick(); button(MActn_LBUTTONDOWN); leftHeld = true; nextPickupAt = 0; break;
@@ -279,7 +300,10 @@ static bool possessionActive() {
     if (!player || !local_state.camera.ready || get_local_view_type(player) != PVT_CreatureContrl || a_menu_window_is_active()) return false;
     const auto* ustate = get_local_user_state();
     if ((ustate->init_flags & UsrIF_CreaturePassengerMode) != 0) return false;
-    return thing_is_creature(thing_get(ustate->controlled_thing_idx));
+    auto* thing = thing_get(ustate->controlled_thing_idx);
+    if (!thing_is_creature(thing)) return false;
+    // The level-start heart zoom (and a defeated keeper) fly an invisible spectator creature.
+    return (creature_control_get_from_thing(thing)->creature_state_flags & TF2_Spectator) == 0;
 }
 static PossessLayout possessLayout() {
     int w=0,h=0; GetSDLWindowSystem()->GetWindowSize(&w,&h);
@@ -542,6 +566,8 @@ extern "C" void KfxAndroidApplyCamera(void) {
     int index=static_cast<int>(get_local_active_camera(player)-local_state.camera.current);
     if (index<0 || index>=CamIV_EndList) return;
     auto* camera=&local_state.camera.destination[index];
+    // A rising angle turns the map counterclockwise on screen, against a clockwise twist.
+    if (rotateWithFingers) r = -r;
     if (r != 0) camera->rotation_angle_x=(camera->rotation_angle_x+static_cast<int>(std::lround(r*2048.0/360.0))) & 2047;
     if (z != 0) {
         bool front=camera->view_mode==PVM_FrontView;

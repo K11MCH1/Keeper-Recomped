@@ -85,7 +85,8 @@ extern "C" void KfxAndroidFramePresented(void) {
 
 extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
     std::string root, profile = "keeperfx";
-    float slop = 24, pinch = .06f, rotate = 12;
+    float slop = 24, pinch = .12f, rotate = 8;
+    bool rotateWithFingers = true;
     std::vector<std::string> values{"keeperfx"};
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -97,7 +98,8 @@ extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
         else if (arg.starts_with("--render-scale=")) renderScale = std::clamp(std::strtof(value("--render-scale=").c_str(), nullptr), 0.0f, 1.0f);
         else if (arg.starts_with("--touch-slop=")) slop = std::clamp(std::strtof(value("--touch-slop=").c_str(), nullptr), 4.0f, 160.0f);
         else if (arg.starts_with("--rotate-deadzone=")) rotate = std::clamp(std::strtof(value("--rotate-deadzone=").c_str(), nullptr), 5.0f, 45.0f);
-        else if (arg.starts_with("--pinch-deadzone=")) pinch = std::clamp(std::strtof(value("--pinch-deadzone=").c_str(), nullptr), .02f, .25f);
+        else if (arg.starts_with("--pinch-deadzone=")) pinch = std::clamp(std::strtof(value("--pinch-deadzone=").c_str(), nullptr), .02f, .3f);
+        else if (arg.starts_with("--rotate-with-fingers=")) rotateWithFingers=value("--rotate-with-fingers=")!="0";
         else if (arg.starts_with("--vsync=")) vsync=value("--vsync=")!="0";
         else if (arg.starts_with("--show-fps=")) showFPS=value("--show-fps=")=="1";
         else if (arg.starts_with("--display-max-hz=")) displayMaxHz=std::clamp(std::atoi(value("--display-max-hz=").c_str()), 0, 165);
@@ -116,7 +118,7 @@ extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
     SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
     SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
-    KfxAndroidConfigureTouch(slop, pinch, rotate);
+    KfxAndroidConfigureTouch(slop, pinch, rotate, rotateWithFingers);
     std::vector<char*> args;
     for (auto& v : values) args.push_back(v.data());
     args.push_back(nullptr);
