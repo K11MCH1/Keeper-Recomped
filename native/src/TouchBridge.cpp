@@ -23,6 +23,8 @@
 #include "roomspace.h"
 #include "thing_creature.h"
 #include "globals.h"
+#include "engine_lenses.h"
+#include "creature_control.h"
 #include <jni.h>
 #include <atomic>
 #include <algorithm>
@@ -67,11 +69,12 @@ static void pushEscape(bool down) {
     bool pushed = pushKey(SDL_SCANCODE_ESCAPE, SDLK_ESCAPE, down);
     if (KfxAndroidInputDiagnostics()) LbSyncLog("AndroidMenu escape %s pushed=%d\n", down ? "down" : "up", static_cast<int>(pushed));
 }
-// A key press held for a few frames, like a real tap of the key.
-struct KeyRelease { SDL_Scancode scancode; SDL_Keycode key; int ticks; };
+// A key press held like a real tap of the key. In a level the engine samples keys once
+// per game turn (20 per second), so a press of a few frames would go unseen.
+struct KeyRelease { SDL_Scancode scancode; SDL_Keycode key; uint64_t at; };
 static std::vector<KeyRelease> keyReleases;
 static void tapKey(SDL_Scancode scancode, SDL_Keycode key) {
-    if (pushKey(scancode, key, true)) keyReleases.push_back({scancode, key, 3});
+    if (pushKey(scancode, key, true)) keyReleases.push_back({scancode, key, SDL_GetTicks() + 120});
 }
 
 extern "C" void KfxAndroidConfigureTouch(float slop, float pinch, float rotate) {
@@ -113,6 +116,34 @@ static void position(float x, float y) {
     setCursor(static_cast<int>(point.x), static_cast<int>(point.y));
 }
 static void button(unsigned action) { TbPoint delta{0,0}; mouseControl(action, &delta); }
+// A tap is a short real click. In a level the button must be seen held for a game turn:
+// digging tags on a held press, so a same-frame press and release tagged nothing.
+static uint64_t clickReleaseAt = 0;
+static GameTurn clickTurn = 0;
+static void releaseClick() {
+    if (!clickReleaseAt) return;
+    clickReleaseAt = 0;
+    button(MActn_LBUTTONUP);
+}
+static void click() {
+    releaseClick();
+    button(MActn_LBUTTONDOWN);
+    clickReleaseAt = SDL_GetTicks() + 80;
+    clickTurn = get_gameturn();
+}
+// Picking up acts on release, so with a creature under the hand click at once, before it
+// walks away; anything else gets the held click.
+static void tap() {
+    const auto* player = get_my_player();
+    if (player && get_local_view_type(player) == PVT_DungeonTop && local_state.local_thing_under_hand > 0) {
+        releaseClick();
+        button(MActn_LBUTTONDOWN); button(MActn_LBUTTONUP);
+    } else click();
+}
+static void stepClick(uint64_t now) {
+    // Wait for a game turn, but never longer than a quarter second (menus, pause).
+    if (clickReleaseAt && now >= clickReleaseAt && (get_gameturn() != clickTurn || now >= clickReleaseAt + 170)) releaseClick();
+}
 static bool inEngineWindow(SDL_FPoint p) {
     return p.x>=local_state.engine_window_x && p.x<local_state.engine_window_x+local_state.engine_window_width
         && p.y>=local_state.engine_window_y && p.y<local_state.engine_window_y+local_state.engine_window_height;
@@ -221,9 +252,9 @@ static void drain() {
         switch (a.kind) {
         case Kind::LeftClick:
             if (digContext(a.x,a.y)) { pendingTap = {true, a.x, a.y, SDL_GetTicks()}; break; }
-            button(MActn_LBUTTONDOWN); button(MActn_LBUTTONUP); break;
-        case Kind::RightClick: button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP); break;
-        case Kind::LeftDown: button(MActn_LBUTTONDOWN); leftHeld = true; nextPickupAt = 0; break;
+            tap(); break;
+        case Kind::RightClick: releaseClick(); button(MActn_RBUTTONDOWN); button(MActn_RBUTTONUP); break;
+        case Kind::LeftDown: releaseClick(); button(MActn_LBUTTONDOWN); leftHeld = true; nextPickupAt = 0; break;
         case Kind::LeftUp: button(MActn_LBUTTONUP); leftHeld = false; break;
         case Kind::RightDown: button(MActn_RBUTTONDOWN); break;
         case Kind::RightUp: button(MActn_RBUTTONUP); break;
@@ -344,8 +375,8 @@ extern "C" void KfxAndroidStickAxes(float* x, float* y) {
 extern "C" void KfxAndroidPossessionLook(float* x, float* y) {
     // A drag across half the window is one full-strength mouse sweep.
     int w=0,h=0; GetSDLWindowSystem()->GetWindowSize(&w,&h);
-    *x = possessing && w > 0 ? lookX/(w*.5f)*1.6f : 0;
-    *y = possessing && h > 0 ? lookY/(h*.5f)*1.6f : 0;
+    *x = possessing && w > 0 ? lookX/(w*.5f)*2.4f : 0;
+    *y = possessing && h > 0 ? lookY/(h*.5f)*2.4f : 0;
     lookX = lookY = 0;
 }
 static void disc(SDL_Renderer* r, SDL_FPoint c, float inner, float outer, SDL_FColor colour) {
@@ -405,7 +436,7 @@ extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
     }
     if (e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WILL_ENTER_BACKGROUND || e->type == SDL_EVENT_FINGER_CANCELED) {
         gestures.cancel(); drain(); panX=panY=zoomDelta=rotationDelta=0;
-        pendingTap.active = false; endPossessionInput(); return 0;
+        pendingTap.active = false; releaseClick(); endPossessionInput(); return 0;
     }
     if ((e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_KEY_UP) && KfxAndroidInputDiagnostics())
         LbSyncLog("AndroidKey %s scancode=%d key=0x%x menu_active=%d show_gui=%d\n", e->type == SDL_EVENT_KEY_DOWN ? "down" : "up",
@@ -420,6 +451,7 @@ extern "C" int KfxAndroidTouchEvent(const SDL_Event* e) {
         return 1;
     }
     if (e->type == SDL_EVENT_FINGER_DOWN) {
+        releaseClick(); // a tap still held must not turn into a drag under the next finger
         updatePossession();
         if (possessing) { possessionDown(e->tfinger.fingerID,x,y); return 1; }
         // Menus and the sidebar retain normal mouse dragging; world drags pan.
@@ -443,12 +475,13 @@ extern "C" void KfxAndroidTouchTick(void) {
     if (pendingTap.active && now-pendingTap.at >= doubleTapMs) {
         pendingTap.active = false;
         position(pendingTap.x, pendingTap.y);
-        button(MActn_LBUTTONDOWN); button(MActn_LBUTTONUP);
+        tap();
     }
+    stepClick(now);
     stepDigDrag();
     repeatPickup(now);
     for (auto it = keyReleases.begin(); it != keyReleases.end();) {
-        if (--it->ticks > 0) { ++it; continue; }
+        if (now < it->at) { ++it; continue; }
         pushKey(it->scancode, it->key, false);
         it = keyReleases.erase(it);
     }
@@ -467,7 +500,14 @@ extern "C" void KfxAndroidTouchTick(void) {
         const auto* camera=get_local_active_camera(player);
         const auto* thing=thing_get(inputThing);
         LbSyncLog("AndroidInput snapshot hand=%d thing=%d health=%ld camera=%ld,%ld zoom=%d yaw=%d\n",dungeon_invalid(dungeon)?-1:dungeon->num_things_in_hand,inputThing,thing_is_invalid(thing)?-1L:static_cast<long>(thing->health),static_cast<long>(camera->mappos.x.val),static_cast<long>(camera->mappos.y.val),camera->zoom,camera->rotation_angle_x);
-        int id=get_thing_class_list_head(TCls_Creature);
+        const auto* controlled=thing_get(get_local_user_state()->controlled_thing_idx);
+        if (thing_is_creature(controlled)) {
+            const auto* cctrl=creature_control_get_from_thing(controlled);
+            LbSyncLog("AndroidPossess thing=%d active_instance=%d instance=%d attack=%d stick=%.2f,%.2f\n",get_local_user_state()->controlled_thing_idx,
+                      static_cast<int>(cctrl->active_instance_id),static_cast<int>(cctrl->instance_id),static_cast<int>(attackDown),stickX,stickY);
+        }
+        // map_to_screen projects through rotpers, which stays null until the first 3D frame.
+        int id=rotpers ? get_thing_class_list_head(TCls_Creature) : 0;
         for(int count=0;id>0 && count<16;count++) {
             auto* creature=thing_get(id);if(thing_is_invalid(creature))break;
             auto pos=creature->mappos;pos.z.val+=creature->clipbox_size_z/2;

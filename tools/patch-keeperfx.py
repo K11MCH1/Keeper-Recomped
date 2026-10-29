@@ -68,6 +68,8 @@ def main():
     # (Claude, 2026-10-29)
     for name in ["front_input.c", "packets.c"]:
         include(name)
+    # A null call leaves PC=0 and no backtrace; the return address names the caller.
+    replace("bflib_crash.c", '        (void *)uctx->uc_mcontext.pc,\n        (void *)uctx->uc_mcontext.sp);\n', '        (void *)uctx->uc_mcontext.pc,\n        (void *)uctx->uc_mcontext.sp);\n#ifdef KFX_ANDROID\n    {\n        void *lr = (void *)uctx->uc_mcontext.regs[30];\n        Dl_info info;\n        if (dladdr(lr, &info) && info.dli_fbase != NULL)\n            LbErrorLog("Context LR=%p %s+0x%lx %s\\n", lr, info.dli_fname, (unsigned long)((char *)lr - (char *)info.dli_fbase), info.dli_sname ? info.dli_sname : "?");\n        else\n            LbErrorLog("Context LR=%p\\n", lr);\n    }\n#endif\n')
     replace("local_camera.c", '        pose.yaw[true] = 0;\n    }\n    sync_local_camera_pose(player, &pose);\n}', '        pose.yaw[true] = 0;\n    }\n#ifdef KFX_ANDROID\n    for (int i = 0; i < 2; i++) {\n        const struct Camera *dcam = &local_state.camera.destination[i ? CamIV_FrontView : CamIV_Isometric];\n        if (dcam->zoom > 0) pose.zoom[i] = dcam->zoom;\n        pose.yaw[i] = dcam->rotation_angle_x;\n    }\n#endif\n    sync_local_camera_pose(player, &pose);\n}')
     replace("packets.c", '        set_all_cameras_rotation(cams, 0);\n', '#ifndef KFX_ANDROID\n        set_all_cameras_rotation(cams, 0);\n#endif\n')
     # Possession on touch: the on-screen stick feeds the movement axes, a right-side

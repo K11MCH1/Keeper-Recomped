@@ -1,3 +1,24 @@
+diff --git a/src/bflib_crash.c b/src/bflib_crash.c
+index f7f87b4..300028f 100644
+--- a/src/bflib_crash.c
++++ b/src/bflib_crash.c
+@@ -438,6 +438,16 @@ static void log_posix_context(void *context)
+     LbErrorLog("Context PC=%p SP=%p.\n",
+         (void *)uctx->uc_mcontext.pc,
+         (void *)uctx->uc_mcontext.sp);
++#ifdef KFX_ANDROID
++    {
++        void *lr = (void *)uctx->uc_mcontext.regs[30];
++        Dl_info info;
++        if (dladdr(lr, &info) && info.dli_fbase != NULL)
++            LbErrorLog("Context LR=%p %s+0x%lx %s\n", lr, info.dli_fname, (unsigned long)((char *)lr - (char *)info.dli_fbase), info.dli_sname ? info.dli_sname : "?");
++        else
++            LbErrorLog("Context LR=%p\n", lr);
++    }
++#endif
+ #else
+     (void)context;
+ #endif
 diff --git a/src/bflib_guibtns.c b/src/bflib_guibtns.c
 index ac6e5cd..ebd73d0 100644
 --- a/src/bflib_guibtns.c

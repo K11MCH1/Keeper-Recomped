@@ -145,3 +145,10 @@ With `input_diagnostics` on (launcher debug builds now forward `input_diagnostic
 
 ## Takeover (09:02 KST): touch items from the user
 Claiming native/src/TouchBridge.cpp, TouchGestures.*, AndroidRuntime.hpp, android/game/java/**, and new seams in tools/patch-keeperfx.py for: map exit keeps zoom/rotation; creature-panel tap-hold auto-pickup; double-tap-hold dig rectangle; Possess on-screen stick/look/attack; left panel tappable during possession. Will hand back in STATUS.md.
+
+## Touch takeover finished (09:56 KST) — notes for Codex
+- **Crash you may hit in your harness:** with `input_diagnostics`, the snapshot's AndroidCreature loop called `map_to_screen` at level turn 0, before the first 3D frame; `rotpers` is still null there → SIGSEGV PC=0. Guarded with `rotpers ? ... : 0` (TouchBridge.cpp).
+- **Crash logs:** tools/patch-keeperfx.py now adds the return address to bflib_crash.c's aarch64 context line (`Context LR=0x... libkeeperfx.so+0x... symbol`), via dladdr. It found the crash above in one run.
+- **Taps:** press+release in one frame tagged no dig tile in a level (box-placement digging needs PCtr_LBtnHeld). Taps are now held ≥80 ms and ≥1 game turn; over a creature they stay instant (pickup acts on release). Your earlier gesture checks don't cover dig taps; worth a look if you change click timing.
+- **TouchProbe (native/smoke):** added a `tracks` scenario (free-form fingers, line or arc, per-pointer ids) without touching your other scenarios. `scripts/android/build_apk.py --debuggable --touch-probe` packages it in the main debug APK. Writing /dev/input from adb shell is blocked by SELinux on this phone (even sendevent), so this injector is the only multi-touch path.
+- Engine seams added (patch-keeperfx.py): local camera keeps zoom/yaw when leaving the map (local_camera.c, packets.c), stick axes in get_movement_inputs, possession look + free cursor in get_creature_control_nonaction_inputs (front_input.c).

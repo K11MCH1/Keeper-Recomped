@@ -27,6 +27,13 @@ Newest block first. Evidence = command + observed output. Codex's state lives in
 
 **FPS at 144 Hz (2026-10-29 08:40 KST, after the user set 144 Hz for the game in Game Space):** policy [144,144] while the game is in front (60 at the home screen). Main menu 144.6 FPS; level 1 idle 144.6 FPS; level 1 while panning by drag 144.6 FPS — p50/p99 6.92 ms, max 6.94 ms, no gaps. The engine's own counter (`AndroidPerformance present_fps` in keeperfx.log) agrees: ≈144.0 on Vulkan, so these are new frames, not repeats.
 
+**Touch additions (2026-10-29 09:00–09:55 KST, Claude takeover of the touch layer; user request):** verified on the phone in level 1 with the gesture injector (`build_apk.py --debuggable --touch-probe`, launch extras `enable_touch_probe`/`input_diagnostics`, `am broadcast -a org.keeperrecomped.app.DEBUG_TOUCH --es scenario tracks --es tracks "L:x0,y0,x1,y1,t0,t1;..."`, camera/hand/possession state from `AndroidInput snapshot`/`AndroidPossess` lines in keeperfx.log):
+- Map keeps zoom and rotation: pinch+twist to zoom 14303 / yaw 498, then map → tap a place, and map → two-finger tap: both back at zoom 14303 / yaw 498 (only position moves).
+- Creature-panel hold: holding the idle-imp count had all 3 imps in hand (hand=3) before the finger lifted.
+- Double tap and hold drags a dig box (screenshot mid-drag shows the box; on release the whole box is tagged; the player's highlight mode is restored). Single tap tags one tile.
+- Possession: stick moves the creature (position changed ~820 units), right-side drag turns (yaw 198→312→136), attack tap fires the active instance (instance=39 after release), panel taps select spells (active_instance 39↔1) and the bottom arrow turns the page, ✕ leaves possession.
+- Fixed on the way: taps were press+release in one frame, which tags no dig tile in a level (digging needs a held press); taps are now short real clicks (≥1 game turn) except over a creature, where the instant click picks it up before it walks away. Injected keys are held 120 ms (the level samples keys per game turn). Diagnostics-only crash: the input snapshot called `map_to_screen` before the first 3D frame (`rotpers` null); guarded. Crash logs now print the return address (`Context LR=... symbol`).
+
 **Not yet verified:** SAF folder picker import on a real pick (shell cannot grant tree URIs; needs the user to pick `Download/Dungeon Keeper/DATA` once — the files are already on the phone there), importing a PC KeeperFX folder, level start/gestures/FPS in the main APK (after Codex fixes the blockers; Codex verified gestures + 120 FPS on its own lowercase test tree).
 
 **Test-environment facts:**

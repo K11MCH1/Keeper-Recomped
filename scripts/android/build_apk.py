@@ -157,6 +157,9 @@ def build(args):
     # Java: launcher + game, with the R classes aapt2 generated.
     sources = sorted((LAUNCHER / 'java').rglob('*.java')) + sorted((GAME / 'java').rglob('*.java'))
     sources += sorted((work / 'gen').rglob('*.java'))
+    if args.touch_probe:
+        # Codex's shell-only gesture injector (GameActivity loads it when started with enable_touch_probe).
+        sources.append(ROOT / 'native/smoke/java/org/keeperrecomped/game/TouchProbe.java')
     jars = sorted((GAME / 'libs').glob('*.jar')) if (GAME / 'libs').is_dir() else []
     classpath = os.pathsep.join(str(p) for p in [bt / 'core-lambda-stubs.jar', *jars])
     run([jdk / f'bin/javac{EXE}', '-source', '8', '-target', '8', '-encoding', 'UTF-8', '-Xlint:-options', '-nowarn',
@@ -221,6 +224,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--debuggable', action='store_true', help='Local engineering build (adb run-as)')
     p.add_argument('--package-id', help='Install beside the main app under this application id')
+    p.add_argument('--touch-probe', action='store_true', help='Debug only: include the adb gesture injector (TouchProbe)')
     p.add_argument('--native-dir', type=Path, default=ROOT / f'build/android/native/{ABI}')
     p.add_argument('--allow-no-engine', action='store_true', help='Launcher-only build without engine libraries')
     p.add_argument('--keystore', type=Path)
@@ -229,6 +233,8 @@ def main():
     p.add_argument('--ndk', type=Path, default=Path(os.environ.get('ANDROID_NDK_ROOT', LOCAL / 'Android/Sdk/ndk/27.3.13750724')))
     p.add_argument('--jdk', type=Path, default=Path(os.environ.get('KR_JDK', LOCAL / 'Programs/DroidDeckJDK17/jdk-17.0.20.1+1')))
     args = p.parse_args()
+    if args.touch_probe and not args.debuggable:
+        p.error('--touch-probe is only for --debuggable builds')
     args.output = args.output.resolve()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     try:
