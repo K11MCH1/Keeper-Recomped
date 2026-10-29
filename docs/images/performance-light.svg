@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="250" viewBox="0 0 920 250" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<title>Performance on two phones: frame rate and on-phone engine compile time</title>
+<rect width="920" height="250" rx="12" fill="#fcfcfb"/>
+<g transform="translate(20,0)">
+<text x="0" y="28" font-size="15" font-weight="600" fill="#0b0b0b">Frame rate in a level</text>
+<text x="0" y="46" font-size="12" fill="#52514e">FPS, higher is better</text>
+<line x1="150.0" y1="68" x2="150.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="150.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">0</text>
+<line x1="200.0" y1="68" x2="200.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="200.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">30</text>
+<line x1="250.0" y1="68" x2="250.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="250.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">60</text>
+<line x1="300.0" y1="68" x2="300.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="300.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">90</text>
+<line x1="350.0" y1="68" x2="350.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="350.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">120</text>
+<line x1="400.0" y1="68" x2="400.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="400.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">150</text>
+<line x1="150.0" y1="68" x2="150.0" y2="170" stroke="#b9b8b2" stroke-width="1"/>
+<text x="140" y="85" font-size="12.5" font-weight="600" text-anchor="end" fill="#0b0b0b">REDMAGIC NX809J</text>
+<text x="140" y="100" font-size="11" text-anchor="end" fill="#52514e">144 Hz panel</text>
+<path d="M150.0,74.0 h237.0 a4,4 0 0 1 4,4 v18.0 a4,4 0 0 1 -4,4 h-237.0 z" fill="#2a78d6"/>
+<text x="397.0" y="91.5" font-size="12.5" font-weight="600" fill="#0b0b0b">144.6 FPS</text>
+<text x="140" y="141" font-size="12.5" font-weight="600" text-anchor="end" fill="#0b0b0b">iQOO 11</text>
+<text x="140" y="156" font-size="11" text-anchor="end" fill="#52514e">60 Hz (vivo setting)</text>
+<path d="M150.0,130.0 h95.8 a4,4 0 0 1 4,4 v18.0 a4,4 0 0 1 -4,4 h-95.8 z" fill="#eb6834"/>
+<text x="255.8" y="147.5" font-size="12.5" font-weight="600" fill="#0b0b0b">59.9 FPS</text>
+<text x="0" y="236" font-size="11" fill="#52514e">Measured with SurfaceFlinger frame timing; RedMagic p99 frame time 6.92 ms.</text>
+<text x="460" y="28" font-size="15" font-weight="600" fill="#0b0b0b">Engine compiled on the phone</text>
+<text x="460" y="46" font-size="12" fill="#52514e">seconds, higher is slower</text>
+<line x1="610.0" y1="68" x2="610.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="610.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">0</text>
+<line x1="672.5" y1="68" x2="672.5" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="672.5" y="186" font-size="11" text-anchor="middle" fill="#52514e">15</text>
+<line x1="735.0" y1="68" x2="735.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="735.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">30</text>
+<line x1="797.5" y1="68" x2="797.5" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="797.5" y="186" font-size="11" text-anchor="middle" fill="#52514e">45</text>
+<line x1="860.0" y1="68" x2="860.0" y2="170" stroke="#e4e3df" stroke-width="1"/>
+<text x="860.0" y="186" font-size="11" text-anchor="middle" fill="#52514e">60</text>
+<line x1="610.0" y1="68" x2="610.0" y2="170" stroke="#b9b8b2" stroke-width="1"/>
+<text x="600" y="85" font-size="12.5" font-weight="600" text-anchor="end" fill="#0b0b0b">REDMAGIC NX809J</text>
+<text x="600" y="100" font-size="11" text-anchor="end" fill="#52514e">Snapdragon SM8850</text>
+<path d="M610.0,74.0 h87.7 a4,4 0 0 1 4,4 v18.0 a4,4 0 0 1 -4,4 h-87.7 z" fill="#2a78d6"/>
+<text x="707.7" y="91.5" font-size="12.5" font-weight="600" fill="#0b0b0b">22 s</text>
+<text x="600" y="141" font-size="12.5" font-weight="600" text-anchor="end" fill="#0b0b0b">iQOO 11</text>
+<text x="600" y="156" font-size="11" text-anchor="end" fill="#52514e">Snapdragon SM8550</text>
+<path d="M610.0,130.0 h221.0 a4,4 0 0 1 4,4 v18.0 a4,4 0 0 1 -4,4 h-221.0 z" fill="#eb6834"/>
+<text x="841.0" y="147.5" font-size="12.5" font-weight="600" fill="#0b0b0b">54 s</text>
+<text x="460" y="236" font-size="11" fill="#52514e">Rebuild game: 351 units of KeeperFX 1.4.0.5573 with Clang 21, then LLD.</text>
+</g>
+</svg>
