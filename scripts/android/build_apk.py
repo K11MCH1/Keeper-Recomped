@@ -97,6 +97,51 @@ def needed(llvm, lib, log):
     return re.findall(r'\(NEEDED\).*?\[(.*?)\]', dyn)
 
 
+COMPILER_SKIP = ('libclang_rt.', 'libarcher', 'libLTO', 'libRemarks', 'libclang.so', 'libomp')
+
+
+def compiler_payload(args, llvm, log):
+    """Termux's Clang and LLD for the phone (the Badman launcher's packaging), each file
+    checked against the signed package index before it goes into the APK."""
+    manifest = json.loads(args.compiler_manifest.read_text(encoding='utf-8'))
+    if not str(manifest.get('status', '')).startswith('PASS_SIGNED_INDEX'):
+        raise BuildError('The compiler package manifest is not a verified signed-index extraction')
+    packages = manifest['packages']
+    base = args.compiler_packages / 'aarch64'
+
+    def verified(path):
+        relative = path.relative_to(base)
+        key = '/'.join(relative.parts[1:])
+        row = packages.get(f"aarch64/{relative.parts[0].removesuffix('-files')}", {}).get('files', {}).get(key)
+        if not row or digest(path) != row['sha256']:
+            raise BuildError(f'Compiler package file does not match the signed index: {relative}')
+        return path
+
+    libraries, aliases = [], {}
+    for path in sorted(base.glob('*-files/lib/*')):
+        if not path.is_file() or not (path.name.endswith('.so') or '.so.' in path.name) or path.name.startswith(COMPILER_SKIP):
+            continue
+        verified(path)
+        dynamic = run([llvm / f'bin/llvm-readelf{EXE}', '--dynamic', path], log)
+        match = re.search(r'\(SONAME\).*?\[(.*?)\]', dynamic)
+        soname = match.group(1) if match else path.name
+        # Versioned names cannot be APK libraries, and Termux's libc++ must not replace the
+        # NDK one the game uses: those get a private name the phone links the soname to.
+        if path.name.endswith('.so') and path.name != 'libc++_shared.so':
+            name = path.name
+        else:
+            name = 'libkr_dep_' + re.sub(r'[^A-Za-z0-9]+', '_', soname.removeprefix('lib').split('.so')[0]) + '.so'
+        if name != soname:
+            aliases[soname] = name
+        libraries.append((path, name))
+    for package, binary, name in (('clang', 'clang-21', 'libkr_clang_tool.so'), ('lld', 'lld', 'libkr_lld_tool.so')):
+        libraries.append((verified(base / f'{package}-files/bin/{binary}'), name))
+    notices = [(verified(p), 'assets/licenses/compiler/' + p.relative_to(base).as_posix())
+               for p in sorted(base.glob('*-files/share/doc/**/*'))
+               if p.is_file() and any(k in p.name.lower() for k in ('license', 'copying', 'copyright', 'notice'))]
+    return libraries, aliases, notices
+
+
 def build(args):
     sdk, ndk, jdk = args.sdk, args.ndk, args.jdk
     platform = sdk / f'platforms/android-{TARGET_SDK}/android.jar'
@@ -130,6 +175,29 @@ def build(args):
     names = {n for _, n in stripped}
     if any('libc++_shared.so' in needed(llvm, p, log) for p, _ in stripped) and 'libc++_shared.so' not in names:
         stripped.append((llvm / f'sysroot/usr/lib/{TRIPLE}/libc++_shared.so', 'libc++_shared.so'))
+
+    # The phone-side engine compiler (scripts/android/engine_kit.py output + Termux Clang/LLD).
+    compiler_assets = []
+    if not args.no_engine_compiler:
+        kit = args.engine_kit
+        missing = [n for n in ('libkrdeps.so', 'engine-kit.zip', 'toolchain.zip') if not (kit / n).is_file()]
+        if missing:
+            raise BuildError(f'Engine kit incomplete in {kit} ({", ".join(missing)}); run scripts/android/engine_kit.py'
+                             ' or pass --no-engine-compiler')
+        # Phone builds compile the kit's copy of our Android engine code: it must be current.
+        with zipfile.ZipFile(kit / 'engine-kit.zip') as bundle:
+            stale = [n for n in bundle.namelist() if n.startswith('native/')
+                     and bundle.read(n) != (ROOT / 'native/src' / n.removeprefix('native/')).read_bytes()]
+        if stale:
+            raise BuildError(f'The engine kit is older than native/src ({", ".join(stale)}); run scripts/android/engine_kit.py')
+        stripped.append((kit / 'libkrdeps.so', 'libkrdeps.so'))
+        compiler, aliases, notices = compiler_payload(args, llvm, log)
+        stripped += compiler
+        kit_id = json.loads(zipfile.ZipFile(kit / 'engine-kit.zip').read('kit.json')).get('kit_id', '')
+        description = work / 'compiler.json'
+        description.write_text(json.dumps({'aliases': aliases, 'kit_id': kit_id}, indent=1), encoding='utf-8')
+        compiler_assets = [(kit / 'toolchain.zip', 'assets/toolchain.zip'), (kit / 'engine-kit.zip', 'assets/engine-kit.zip'),
+                           (description, 'assets/compiler.json')] + notices
 
     # Resources and manifest.
     manifest = LAUNCHER / 'AndroidManifest.xml'
@@ -180,6 +248,7 @@ def build(args):
                       (ndk / 'NOTICE', 'Android-NDK-NOTICE.txt')):
         if src.is_file():
             extra.append((src, 'assets/licenses/' + name))
+    extra += compiler_assets
     if len({n for _, n in extra}) != len(extra):
         raise BuildError('Two assets share one path')
 
@@ -194,7 +263,8 @@ def build(args):
             apk.write(src, f'lib/{ABI}/{name}', compress_type=zipfile.ZIP_DEFLATED)
             contents.append({'path': f'lib/{ABI}/{name}', 'sha256': digest(src), 'bytes': src.stat().st_size})
         for src, name in extra:
-            apk.write(src, name, compress_type=zipfile.ZIP_DEFLATED)
+            # The kit archives are compressed already.
+            apk.write(src, name, compress_type=zipfile.ZIP_STORED if name.endswith('.zip') else zipfile.ZIP_DEFLATED)
     aligned = work / 'aligned.apk'
     run([bt / f'zipalign{EXE}', '-P', '16', '-f', '4', unsigned, aligned], log)
     keystore = args.keystore or ROOT / 'build/android/keeper-recomped-debug.keystore'
@@ -225,6 +295,11 @@ def main():
     p.add_argument('--debuggable', action='store_true', help='Local engineering build (adb run-as)')
     p.add_argument('--package-id', help='Install beside the main app under this application id')
     p.add_argument('--touch-probe', action='store_true', help='Debug only: include the adb gesture injector (TouchProbe)')
+    termux = Path(os.environ.get('KR_TERMUX_PACKAGES', Path.home() / 'Desktop/PSPrecomp/out/android-port-v1/compiler-probe'))
+    p.add_argument('--no-engine-compiler', action='store_true', help='Leave out the phone-side engine compiler (smaller APK)')
+    p.add_argument('--engine-kit', type=Path, default=ROOT / 'build/engine-kit', help='scripts/android/engine_kit.py output')
+    p.add_argument('--compiler-packages', type=Path, default=termux / 'termux-packages', help='Extracted Termux clang/lld packages')
+    p.add_argument('--compiler-manifest', type=Path, default=termux / 'COMPILER_PACKAGES.json', help='Signed-index verification of them')
     p.add_argument('--native-dir', type=Path, default=ROOT / f'build/android/native/{ABI}')
     p.add_argument('--allow-no-engine', action='store_true', help='Launcher-only build without engine libraries')
     p.add_argument('--keystore', type=Path)

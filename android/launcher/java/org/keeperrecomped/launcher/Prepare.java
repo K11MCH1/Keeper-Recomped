@@ -137,27 +137,169 @@ final class Prepare {
         }
 
         if (!kfxFromFolder)
-            installStable(25, 72);
+            installStable(25, 62);
 
-        step(72, 74, "Adding the original game files");
+        step(62, 63, "Adding the original game files");
         copyDkSubset(dk, kfx);
 
         if ("ALPHA".equals(settings.get("release_channel"))) {
-            applyAlpha(74, 90);
+            applyAlpha(63, 74);
         }
 
-        step(90, 92, "Writing settings");
+        step(74, 75, "Writing settings");
         fromTemplates(kfx);
         ConfigWriter.write(kfx, settings);
 
-        step(92, 100, "Setting up the original game");
+        step(75, 76, "Setting up the original game");
         syncClassic(ctx);
 
         state = State.load(ctx);
         state.put("prepared", true).put("prepared_at", now());
         State.save(ctx, state);
+
+        // "Build": the engine for exactly this KeeperFX version, compiled on the phone.
+        // The game data is ready either way; a failed build leaves the previous engine.
+        if (Toolchain.available(ctx) && !engineMatches(ctx, State.load(ctx))) {
+            try {
+                buildEngineStep(76, 100);
+            } catch (Cancelled e) {
+                throw e;
+            } catch (Exception e) {
+                AppLog.e("engine build during prepare failed", e);
+                State.put(ctx, "engine_error", e.getMessage());
+            }
+        }
         base = 100; span = 0; label = "Ready";
         emit(1, null);
+    }
+
+    // ---- Engine build ----
+
+    /** The installed game data's KeeperFX version: an alpha build, the stable release, or unknown (imported folder). */
+    static String dataVersion(JSONObject state) {
+        String alpha = state.optString("alpha_version");
+        if (!alpha.isEmpty())
+            return alpha;
+        String stable = state.optString("kfx_version");
+        return stable.isEmpty() || "folder".equals(stable) ? "" : stable;
+    }
+
+    /** The engine the game will load: phone-built for a KeeperFX version, or the one inside the app. */
+    static JSONObject activeEngine(JSONObject state) {
+        JSONObject engine = state.optJSONObject("engine");
+        if (engine != null && new File(engine.optString("lib")).isFile())
+            return engine;
+        return null;
+    }
+
+    static boolean engineMatches(Context c, JSONObject state) {
+        String data = dataVersion(state);
+        JSONObject engine = activeEngine(state);
+        return data.isEmpty() || (engine != null && data.equals(engine.optString("for")) && !kitChanged(c, engine));
+    }
+
+    /** The phone-built engine predates this app's Android engine code (an app update): rebuild it. */
+    static boolean kitChanged(Context c, JSONObject engine) {
+        String kit = Toolchain.kitId(c);
+        return engine != null && !kit.isEmpty() && !kit.equals(engine.optString("kit_id"));
+    }
+
+    /** Build task ("Rebuild game"): compile the engine for the installed KeeperFX data. */
+    void buildEngine() throws Exception {
+        task = "build";
+        buildEngineStep(0, 100);
+        base = 100; span = 0; label = "Engine ready";
+        emit(1, null);
+    }
+
+    private void buildEngineStep(int from, int to) throws Exception {
+        JSONObject state = State.load(ctx);
+        String version = dataVersion(state);
+        if (version.isEmpty())
+            throw new IOException("The KeeperFX version of an imported folder is unknown. Choose a version under Game version first.");
+        boolean alpha = version.equals(state.optString("alpha_version"));
+        String ref;
+        if (alpha) {
+            ref = state.optString("alpha_commit");
+            if (ref.isEmpty()) {
+                step(from, from + 2, "Finding KeeperFX " + version + "'s source");
+                String runId = state.optString("alpha_run_id");
+                if (runId.isEmpty()) {
+                    // Installed before run ids were kept: the latest alpha names its run directly.
+                    JSONObject latest = api.alpha();
+                    if (version.equals(latest.optString("version")))
+                        runId = latest.optString("workflow_run_id");
+                }
+                ref = KfxSource.alphaCommit(runId, state.optString("alpha_title"), state.optString("alpha_date"));
+                State.put(ctx, "alpha_commit", ref);
+            }
+        } else {
+            ref = "refs/tags/v" + version;
+        }
+        int build = 0;
+        try {
+            build = Integer.parseInt(version.substring(version.lastIndexOf('.') + 1));
+        } catch (NumberFormatException ignored) {
+        }
+        if (!alpha)
+            build = 0; // a stable tag: the build number is not part of its version
+        File work = new File(EngineBuilder.root(ctx), "work");
+        int fetchEnd = from + (to - from) * 25 / 100, toolsEnd = from + (to - from) * 35 / 100;
+        step(from + 2, fetchEnd, "Downloading KeeperFX " + version + " source");
+        File src = KfxSource.fetch(ctx, ref, new File(work, "src"), (done, total) -> {
+            emit(total > 0 ? (double) done / total : 0, mb(done));
+            return !cancelled;
+        });
+        step(fetchEnd, toolsEnd, "Preparing the compiler");
+        Toolchain tc = Toolchain.prepare(ctx);
+        final int buildFrom = toolsEnd;
+        EngineBuilder builder = new EngineBuilder(ctx, tc, new EngineBuilder.Progress() {
+            @Override
+            public void stage(String text, double fraction, String detail) throws Cancelled {
+                synchronized (Prepare.this) {
+                    if (!text.equals(label))
+                        step(buildFrom, to, text);
+                    emit(fraction, detail);
+                }
+            }
+
+            @Override
+            public boolean cancelled() { return cancelled; }
+        });
+        long started = System.currentTimeMillis();
+        File lib;
+        try {
+            lib = builder.build(src, work, alpha ? ref : version, version, build);
+        } catch (EngineBuilder.Unbuildable e) {
+            State.put(ctx, "unbuildable", version);
+            throw e;
+        }
+        JSONObject engine = new JSONObject().put("lib", lib.getPath()).put("for", version).put("commit", ref)
+                .put("label", "KeeperFX " + version).put("kit", tc.recipe.optInt("kit"))
+                .put("kit_id", tc.recipe.optString("kit_id")).put("built_at", now())
+                .put("seconds", (System.currentTimeMillis() - started) / 1000);
+        state = State.load(ctx);
+        JSONObject previous = state.optJSONObject("engine");
+        state.put("engine", engine).put("unbuildable", "").put("engine_error", "");
+        State.save(ctx, state);
+        AppLog.i("engine for " + version + " built in " + engine.optLong("seconds") + " s: " + lib);
+        // The previous phone-built engine and the build inputs are no longer needed.
+        if (previous != null && !lib.getParentFile().getPath().equals(new File(previous.optString("lib")).getParent()))
+            deleteTree(new File(previous.optString("lib")).getParentFile());
+        deleteTree(work);
+    }
+
+    /** Deletes a tree without following symbolic links (the classic root is made of them). */
+    static void deleteTree(File f) {
+        if (f == null)
+            return;
+        if (f.isDirectory() && !java.nio.file.Files.isSymbolicLink(f.toPath())) {
+            File[] list = f.listFiles();
+            if (list != null)
+                for (File c : list)
+                    deleteTree(c);
+        }
+        f.delete();
     }
 
     /**
@@ -165,6 +307,11 @@ final class Prepare {
      * when the Stable channel must undo a previously applied alpha patch.
      */
     void installStable(int from, int to) throws Exception {
+        installStable(from, to, false);
+    }
+
+    /** @param force reinstall even when this stable release is already installed (version changes). */
+    void installStable(int from, int to, boolean force) throws Exception {
         File kfx = Paths.kfx(ctx);
         JSONObject state = State.load(ctx);
         JSONObject stable;
@@ -179,10 +326,13 @@ final class Prepare {
         }
         boolean current = stable.optString("version").equals(state.optString("kfx_version")) && new File(kfx, "fxdata").isDirectory();
         boolean undoAlpha = "STABLE".equals(settings.get("release_channel")) && !state.optString("alpha_version").isEmpty();
-        if (current && !undoAlpha)
+        if (current && !undoAlpha && !force)
             return;
         if (settings.bool("backup_saves"))
             backupSaves(kfx);
+        // Files only the alpha patch has would otherwise outlive the switch back to stable.
+        if (undoAlpha)
+            removeAlphaFiles(state.optString("alpha_version"), files("stable", stable.optString("version")));
         String url = stable.getString("download_url");
         File archive = new File(Paths.downloads(ctx), fileName(url));
         int mid = from + (to - from) * 7 / 10;
@@ -194,17 +344,25 @@ final class Prepare {
         step(mid, to, "Installing " + stable.optString("name", "KeeperFX"));
         extract7z(archive, kfx, null);
         state = State.load(ctx);
-        state.put("kfx_version", stable.optString("version")).put("alpha_version", "").put("alpha_title", "");
+        state.put("kfx_version", stable.optString("version")).put("alpha_version", "").put("alpha_title", "")
+                .put("alpha_run_id", "").put("alpha_date", "").put("alpha_commit", "");
         State.save(ctx, state);
         discard(archive);
     }
 
-    /** The alpha patch on top of the installed stable release, when it is newer. */
+    /** The latest alpha patch on top of the installed stable release, when it is newer. */
     void applyAlpha(int from, int to) throws Exception {
+        applyAlphaBuild(api.alpha(), from, to, false);
+    }
+
+    /**
+     * One alpha patch (latest from the API, or any from KfxSource.alphas) on top of the stable release.
+     * Alpha patches always carry the same full file set, so applying an older one over a newer one is exact.
+     */
+    void applyAlphaBuild(JSONObject alpha, int from, int to, boolean force) throws Exception {
         JSONObject state = State.load(ctx);
-        JSONObject alpha = api.alpha();
         String version = alpha.optString("version");
-        if (version.equals(state.optString("alpha_version")))
+        if (version.equals(state.optString("alpha_version")) && !force)
             return;
         String kfxVersion = state.optString("kfx_version");
         if (!kfxVersion.isEmpty() && !"folder".equals(kfxVersion) && !version.startsWith(majorMinor(kfxVersion)))
@@ -223,9 +381,102 @@ final class Prepare {
         step(mid, to, "Applying alpha patch " + version);
         extract7z(archive, kfx, null);
         state = State.load(ctx);
-        state.put("alpha_version", version).put("alpha_title", alpha.optString("workflow_title"));
+        state.put("alpha_version", version).put("alpha_title", alpha.optString("workflow_title", alpha.optString("title")))
+                .put("alpha_run_id", alpha.optString("workflow_run_id")).put("alpha_date", alpha.optString("timestamp", alpha.optString("date")))
+                .put("alpha_commit", "");
         State.save(ctx, state);
         discard(archive);
+    }
+
+    /** The files a KeeperFX release consists of (keeperfx.net's per-release file list), without the leading slash. */
+    java.util.Set<String> files(String type, String version) throws IOException {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (version == null || version.isEmpty())
+            return out;
+        JSONObject files = api.json("release/" + type + "/" + version + "/files").optJSONObject("files");
+        if (files == null)
+            throw new IOException("keeperfx.net has no file list for " + type + " " + version);
+        for (java.util.Iterator<String> it = files.keys(); it.hasNext(); )
+            out.add(it.next().replaceFirst("^/+", ""));
+        return out;
+    }
+
+    /** Deletes the installed alpha's files that {@code keep} does not have (never saves or settings). */
+    private void removeAlphaFiles(String alphaVersion, java.util.Set<String> keep) throws IOException {
+        if (alphaVersion == null || alphaVersion.isEmpty())
+            return;
+        File kfx = Paths.kfx(ctx);
+        String base = kfx.getCanonicalPath() + File.separator;
+        int removed = 0;
+        for (String name : files("alpha", alphaVersion)) {
+            String n = name.toLowerCase(Locale.ROOT);
+            if (keep.contains(name) || n.equals("keeperfx.cfg") || n.startsWith("save/") || n.startsWith("replays/")
+                    || n.startsWith("scrshots/") || n.equals("mods/_load_order.cfg"))
+                continue;
+            File f = new File(kfx, name);
+            if (f.getCanonicalPath().startsWith(base) && f.isFile() && f.delete())
+                removed++;
+        }
+        AppLog.i("removed " + removed + " files of alpha " + alphaVersion);
+    }
+
+    /**
+     * Version task: switch the game data to the stable release ({@code alphaVersion} null) or any alpha
+     * patch, newer or older. The engine is not rebuilt here; the launcher then asks for "Rebuild game".
+     */
+    void switchVersion(String alphaVersion) throws Exception {
+        task = "version";
+        JSONObject state = State.load(ctx);
+        if (state.optBoolean("kfx_from_folder"))
+            throw new IOException("Changing the version needs KeeperFX installed by the launcher, not an imported KeeperFX folder.");
+        if (!new File(Paths.kfx(ctx), "fxdata").isDirectory())
+            throw new IOException("Prepare the game first.");
+        File kfx = Paths.kfx(ctx);
+        String current = state.optString("alpha_version");
+        step(0, 8, "Checking the installed files");
+        JSONObject target = null;
+        if (alphaVersion != null) {
+            org.json.JSONArray list = KfxSource.alphas(ctx);
+            for (int i = 0; i < list.length() && target == null; i++)
+                if (alphaVersion.equals(list.getJSONObject(i).optString("version")))
+                    target = list.getJSONObject(i);
+            if (target == null)
+                throw new IOException("keeperfx.net no longer offers alpha " + alphaVersion);
+        }
+        if (settings.bool("backup_saves"))
+            backupSaves(kfx);
+        java.util.Set<String> stableFiles = files("stable", state.optString("kfx_version"));
+        java.util.Set<String> targetFiles = target == null ? new java.util.HashSet<>() : files("alpha", alphaVersion);
+        java.util.Set<String> keep = new java.util.HashSet<>(stableFiles);
+        keep.addAll(targetFiles);
+        removeAlphaFiles(current, keep);
+        // Files the current alpha overwrote and the target does not bring back need the stable release.
+        boolean needStable = false;
+        if (!current.isEmpty())
+            for (String f : files("alpha", current))
+                if (stableFiles.contains(f) && !targetFiles.contains(f)) {
+                    needStable = true;
+                    break;
+                }
+        if (needStable)
+            installStable(8, 70, true);
+        if (target != null)
+            applyAlphaBuild(target, 70, 92, true);
+        else {
+            state = State.load(ctx);
+            state.put("alpha_version", "").put("alpha_title", "").put("alpha_run_id", "").put("alpha_date", "").put("alpha_commit", "");
+            State.save(ctx, state);
+        }
+        step(92, 94, "Adding the original game files");
+        copyDkSubset(Paths.dk(ctx), kfx);
+        step(94, 100, "Writing settings");
+        fromTemplates(kfx);
+        ConfigWriter.write(kfx, settings);
+        syncClassic(ctx);
+        // A version picked by hand is kept until the player updates again.
+        State.put(ctx, "pinned", true);
+        base = 100; span = 0; label = "Version installed";
+        emit(1, null);
     }
 
     /** Update task: newest alpha (or stable) without re-importing. */
@@ -233,6 +484,7 @@ final class Prepare {
         task = "update";
         if (!new File(Paths.kfx(ctx), "fxdata").isDirectory())
             throw new IOException("Prepare the game first.");
+        State.put(ctx, "pinned", false); // updating means following the newest version again
         if (!State.load(ctx).optBoolean("kfx_from_folder"))
             installStable(0, 60);
         copyDkSubset(Paths.dk(ctx), Paths.kfx(ctx));
@@ -485,6 +737,7 @@ final class Prepare {
         }
     }
 
+    /** Downloaded KeeperFX archives (stable release, alpha patches) go unless the player keeps them. */
     private void discard(File archive) {
         if (!settings.bool("keep_downloads"))
             archive.delete();

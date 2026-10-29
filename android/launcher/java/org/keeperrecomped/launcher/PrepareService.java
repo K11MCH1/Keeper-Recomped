@@ -21,8 +21,9 @@ import org.json.JSONObject;
  * going with the screen off or the launcher in the background. One task at a time.
  */
 public final class PrepareService extends Service {
-    static final String EXTRA_TASK = "task";       // prepare | update | workshop
+    static final String EXTRA_TASK = "task";       // prepare | update | build | version | workshop
     static final String EXTRA_TREE = "tree";       // prepare: picked folder (optional)
+    static final String EXTRA_VERSION = "version"; // version: alpha version, empty = stable release
     static final String EXTRA_WS_ID = "ws_id";
     static final String EXTRA_WS_NAME = "ws_name";
     static final String EXTRA_WS_URL = "ws_url";
@@ -91,6 +92,11 @@ public final class PrepareService extends Service {
         try {
             if ("update".equals(kind)) {
                 prepare.update();
+            } else if ("build".equals(kind)) {
+                prepare.buildEngine();
+            } else if ("version".equals(kind)) {
+                String version = task.getStringExtra(EXTRA_VERSION);
+                prepare.switchVersion(version == null || version.isEmpty() ? null : version);
             } else if ("workshop".equals(kind)) {
                 prepare.installWorkshop(task.getStringExtra(EXTRA_WS_ID), task.getStringExtra(EXTRA_WS_NAME),
                         task.getStringExtra(EXTRA_WS_URL), task.getStringExtra(EXTRA_WS_FILE), task.getLongExtra(EXTRA_WS_SIZE, -1));

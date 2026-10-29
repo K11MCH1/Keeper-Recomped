@@ -45,6 +45,21 @@
       </div>
     </div>
 
+    <div class="card" id="versionCard">
+      <h2>Game version</h2>
+      <dl class="facts" id="versionFacts"></dl>
+      <p class="warnbox hidden" id="versionWarn"></p>
+      <div class="row-buttons">
+        <button class="btn" id="rebuild">Rebuild game</button>
+        <button class="btn" id="changeVersion">Change version…</button>
+      </div>
+      <div class="field inline-toggle">
+        <div class="lbl">Delete downloaded patches after install.<small>The same setting as Advanced → Keep downloaded archives. Off keeps the KeeperFX archives, so switching back to a version needs no new download.</small></div>
+        <label class="switch"><input type="checkbox" id="deletePatches" checked><span></span></label>
+      </div>
+      <div class="vlist hidden" id="versionList"></div>
+    </div>
+
     <div class="playbox">
       <button class="btn play" id="playOriginal">Play Original</button>
       <p class="caption" id="originalCaption"></p>

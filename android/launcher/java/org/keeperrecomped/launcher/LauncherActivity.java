@@ -136,7 +136,7 @@ public final class LauncherActivity extends Activity {
     /**
      * Engineering builds: drive the page from adb, e.g.
      * am start -n org.keeperrecomped.app/org.keeperrecomped.launcher.LauncherActivity --es debug_action tab:news
-     * Actions: tab:NAME, prepare, update, play:keeperfx, play:original, cancel.
+     * Actions: tab:NAME, prepare, update, build, version:STABLE|ALPHA_VERSION, play:keeperfx, play:original, cancel.
      */
     private void debugAction(Intent intent) {
         if (intent != null && isDebuggable() && intent.getBooleanExtra("debug_tree", false) && intent.getData() != null) {
@@ -159,6 +159,10 @@ public final class LauncherActivity extends Activity {
             js = "document.getElementById('updateNow').click()";
         else if (action.equals("cancel"))
             js = "KR.cancel()";
+        else if (action.equals("build"))
+            js = "document.getElementById('rebuild').click()";
+        else if (action.startsWith("version:"))
+            js = "startedTask(KR.switchVersion(" + JSONObject.quote(action.equals("version:stable") ? "" : action.substring(8)) + "))";
         else if (action.startsWith("play:"))
             js = "document.getElementById(" + JSONObject.quote(action.endsWith("original") ? "playOriginal" : "playKfx") + ").click()";
         else
@@ -228,7 +232,8 @@ public final class LauncherActivity extends Activity {
                 prefs.edit().putLong("last_update_check", System.currentTimeMillis()).apply();
                 if (found != null) {
                     send(new JSONObject().put("version", found).put("title", title), "update");
-                    if (settings.bool("auto_update") && !PrepareService.isRunning())
+                    // A version picked by hand stays until the player taps Update.
+                    if (settings.bool("auto_update") && !PrepareService.isRunning() && !state.optBoolean("pinned"))
                         PrepareService.start(this, new Intent().putExtra(PrepareService.EXTRA_TASK, "update"));
                 }
             } catch (Exception e) {
@@ -279,6 +284,17 @@ public final class LauncherActivity extends Activity {
             } catch (Exception ignored) {
             }
             o.put("kfx_ready", new File(Paths.kfx(this), "fxdata").isDirectory() && new File(Paths.kfx(this), "data/bluepal.dat").isFile());
+            // Game data version vs the engine that will run it (phone-built or the app's own).
+            JSONObject built = Prepare.activeEngine(s);
+            String data = Prepare.dataVersion(s);
+            o.put("version", new JSONObject().put("data", data).put("pinned", s.optBoolean("pinned"))
+                    .put("engine", built != null ? built.optString("label") : "")
+                    .put("engine_built_at", built != null ? built.optString("built_at") : "")
+                    .put("matches", Prepare.engineMatches(this, s))
+                    .put("kit_changed", data.equals(built != null ? built.optString("for") : "") && Prepare.kitChanged(this, built))
+                    .put("unbuildable", !data.isEmpty() && data.equals(s.optString("unbuildable")))
+                    .put("can_build", Toolchain.available(this))
+                    .put("engine_error", s.optString("engine_error")));
             o.put("running", PrepareService.isRunning());
             o.put("channel", settings.get("release_channel"));
             o.put("website", settings.bool("website_integration"));
@@ -356,6 +372,45 @@ public final class LauncherActivity extends Activity {
                 return "A task is already running.";
             PrepareService.start(LauncherActivity.this, new Intent().putExtra(PrepareService.EXTRA_TASK, "update"));
             return "";
+        }
+
+        /** "Rebuild game": compile the engine for the installed KeeperFX version on the phone. */
+        @JavascriptInterface
+        public String rebuild() {
+            if (PrepareService.isRunning())
+                return "A task is already running.";
+            if (!Toolchain.available(LauncherActivity.this))
+                return "This build of the app has no engine compiler.";
+            PrepareService.start(LauncherActivity.this, new Intent().putExtra(PrepareService.EXTRA_TASK, "build"));
+            return "";
+        }
+
+        /** Installs the stable release ("") or an alpha patch, newer or older. */
+        @JavascriptInterface
+        public String switchVersion(String version) {
+            if (PrepareService.isRunning())
+                return "A task is already running.";
+            if (version == null || !version.matches("|[0-9]+(\\.[0-9]+){3}"))
+                return "Unknown version.";
+            PrepareService.start(LauncherActivity.this, new Intent().putExtra(PrepareService.EXTRA_TASK, "version")
+                    .putExtra(PrepareService.EXTRA_VERSION, version));
+            return "";
+        }
+
+        /** Async: kr.onEvent("api", {id, ok, body: {stable, alphas, current}}) for the version picker. */
+        @JavascriptInterface
+        public void versions(String id) {
+            io.execute(() -> {
+                try {
+                    JSONObject body = new JSONObject()
+                            .put("stable", new KfxApi(LauncherActivity.this).stable())
+                            .put("alphas", KfxSource.alphas(LauncherActivity.this))
+                            .put("current", Prepare.dataVersion(State.load(LauncherActivity.this)));
+                    send(apiResult(id, body.toString(), null), "api");
+                } catch (Exception e) {
+                    send(apiResult(id, null, e.getMessage()), "api");
+                }
+            });
         }
 
         @JavascriptInterface

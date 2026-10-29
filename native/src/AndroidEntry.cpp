@@ -15,6 +15,7 @@
 static std::string presentation = "vulkan";
 static float renderScale = 0;
 static int frameCap = 0;
+static int displayMaxHz = 0; // from GameActivity: the panel's highest refresh rate
 static bool vsync = true, showFPS = false;
 static bool inputDiagnostics = false;
 static bool cheatsEnabled = false;
@@ -26,7 +27,7 @@ extern "C" int KfxAndroidVsync(void) { return vsync ? 1 : 0; }
 extern "C" int KfxAndroidInputDiagnostics(void) { return inputDiagnostics ? 1 : 0; }
 extern "C" int KfxAndroidCheatsEnabled(void) { return cheatsEnabled ? 1 : 0; }
 extern "C" void KfxAndroidConfigureWindow(SDL_Window* window) {
-    float rate=frameCap>0?static_cast<float>(frameCap):60.0f;
+    float rate=frameCap>0?static_cast<float>(frameCap):displayMaxHz>0?static_cast<float>(displayMaxHz):60.0f;
     SDL_DisplayID display=SDL_GetDisplayForWindow(window);
     if (!frameCap) {
         int count=0;auto modes=SDL_GetFullscreenDisplayModes(display,&count);
@@ -99,6 +100,7 @@ extern "C" SDL_DECLSPEC int SDL_main(int argc, char** argv) {
         else if (arg.starts_with("--pinch-deadzone=")) pinch = std::clamp(std::strtof(value("--pinch-deadzone=").c_str(), nullptr), .02f, .25f);
         else if (arg.starts_with("--vsync=")) vsync=value("--vsync=")!="0";
         else if (arg.starts_with("--show-fps=")) showFPS=value("--show-fps=")=="1";
+        else if (arg.starts_with("--display-max-hz=")) displayMaxHz=std::clamp(std::atoi(value("--display-max-hz=").c_str()), 0, 165);
         else if (arg.starts_with("--input-diagnostics=")) inputDiagnostics=value("--input-diagnostics=")=="1";
         else { if(arg=="-alex") cheatsEnabled=true; values.push_back(arg); }
     }

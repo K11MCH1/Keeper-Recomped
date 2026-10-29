@@ -86,6 +86,10 @@ final class GameLauncher {
         i.putExtra("touch_rotate_deadzone_deg", (float) s.integer("touch_rotate_deadzone_deg"));
         i.putExtra("touch_pinch_deadzone", s.integer("touch_pinch_deadzone_pct") / 100f);
         i.putExtra("show_fps", s.bool("show_fps"));
+        // The engine compiled on this phone for the installed KeeperFX version, else the app's own.
+        org.json.JSONObject built = Prepare.activeEngine(State.load(c));
+        if (built != null)
+            i.putExtra("engine_lib", built.optString("lib"));
         if (debug != null)
             i.putExtras(debug); // engineering builds only; see GameActivity
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

@@ -129,6 +129,7 @@ final class Settings {
         bool("advanced", "Launcher", "auto_update", false, "Update automatically", "Apply new alpha patches when the launcher opens.");
         bool("advanced", "Launcher", "backup_saves", true, "Backup savefiles during update", null);
         bool("advanced", "Launcher", "website_integration", true, "Enable website integration", "Fetch News and Workshop from keeperfx.net.");
+        // Also shown, reversed, under Play → Game version as "Delete downloaded patches after install."
         bool("advanced", "Launcher", "keep_downloads", false, "Keep downloaded archives", "Otherwise they are deleted after installing.");
         choice("advanced", "Launcher", "download_server", "keeperfx.net", "Download Server", null, "keeperfx.net|keeperfx.net");
         integer("advanced", "Touch tuning", "touch_rotate_deadzone_deg", 12, 2, 45, "Rotate dead zone (degrees)",

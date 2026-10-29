@@ -9,9 +9,10 @@ Dungeon Keeper for Android 15+ (ARM64): a launcher APK plus the KeeperFX engine 
 
 ## Build
 ```
+python scripts/android/engine_kit.py
 python scripts/android/build_apk.py --output build/apk/keeper-recomped.apk --debuggable
 ```
-Engine libraries: `tools/build-dependencies.ps1` then `tools/build-native.ps1` (vcpkg + NDK 27, ARM64, API 35). See [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) for the full toolchain and workflow.
+Engine libraries: `tools/build-dependencies.ps1` then `tools/build-native.ps1` (vcpkg + NDK 27, ARM64, API 35). `engine_kit.py` packs what the phone needs to rebuild the engine itself for any KeeperFX version (Rebuild game; see [docs/LAUNCHER.md](docs/LAUNCHER.md)). See [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) for the full toolchain and workflow.
 
 ## Layout
 | Path | What |

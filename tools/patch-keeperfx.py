@@ -3,9 +3,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/keeperfx/src"
+# `--emit-seams out.json` records the edits in order instead of applying them; the
+# launcher applies the same list to KeeperFX sources it downloads (on-phone builds).
+SEAMS = None
 
 
 def replace(name, old, new):
+    if SEAMS is not None:
+        SEAMS.append({"file": name, "old": old, "new": new})
+        return
     path = SOURCE / name
     text = path.read_text(encoding="utf-8")
     if new in text:
@@ -81,4 +87,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import json
+    import sys
+    if len(sys.argv) == 3 and sys.argv[1] == "--emit-seams":
+        SEAMS = []
+        main()
+        Path(sys.argv[2]).write_text(json.dumps({"base": "src", "seams": SEAMS}, indent=1), encoding="utf-8")
+    else:
+        main()

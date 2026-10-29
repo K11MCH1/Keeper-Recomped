@@ -63,19 +63,38 @@ const kr = {
     const kv = state.kfx_version;
     fact('KeeperFX', kv ? (kv === 'folder' ? 'from your folder' : kv) + (state.alpha_version ? ' + alpha ' + state.alpha_version : '') : 'not installed', kv ? 'ok' : '');
     fact('Channel', s.channel === 'ALPHA' ? 'Alpha patches' : 'Stable');
-    const ei = s.engine_info || {};
-    const engineName = 'KeeperFX ' + (ei.version || '') + (ei.commit ? ' (' + ei.commit.slice(0, 7) + ')' : '') + ' · ARM64';
-    fact('Engine', s.engine ? engineName : 'not in this build yet', s.engine ? 'ok' : 'bad');
-    // Alpha patches change data and configs only; the engine is the one compiled into this app.
-    if (s.engine && ei.title && state.alpha_title && state.alpha_title !== ei.title) {
-      fact('Note', 'Alpha ' + (state.alpha_version || '') + ' data is newer than this app\'s engine build. '
-        + 'Features that need engine changes arrive with an app update.', 'warn');
-    }
     if (state.last_error) fact('Last error', state.last_error, 'bad');
     $('facts').innerHTML = facts.join('');
 
     const running = s.running || this.progress.running;
     const ready = s.kfx_ready && state.prepared;
+
+    // Game data version vs the engine that runs it: warn and offer a rebuild when they differ.
+    const v = s.version || {};
+    const ei = s.engine_info || {};
+    const appEngine = 'KeeperFX ' + (ei.version || '') + (ei.commit ? ' (' + ei.commit.slice(0, 7) + ')' : '') + ', built into the app';
+    const engineNow = v.engine ? v.engine + ', built on this phone' : appEngine;
+    const vf = [];
+    vf.push(`<dt>Game data</dt><dd>${esc(v.data ? 'KeeperFX ' + v.data + (v.pinned ? ' (chosen version)' : '')
+      : kv === 'folder' ? 'KeeperFX from your folder' : 'not installed')}</dd>`);
+    vf.push(`<dt>Engine</dt><dd class="${s.engine ? (v.matches ? 'ok' : 'warn') : 'bad'}">${esc(s.engine ? engineNow : 'not in this build')}</dd>`);
+    $('versionFacts').innerHTML = vf.join('');
+    let warn = '';
+    if (ready && v.data && !v.matches) {
+      warn = v.unbuildable
+        ? `KeeperFX ${v.data} cannot be built for Android: it is older than the code the Android engine is built on. `
+          + `The game runs this data on ${engineNow}, which may not suit it.`
+        : v.kit_changed
+          ? 'This app update changes the game engine. Rebuild the game to include it (it takes about a minute).'
+          : `The game data is KeeperFX ${v.data}, but the engine is ${engineNow}. `
+            + 'Rebuild the game to bring in this version\'s engine fixes (it takes about a minute).';
+    }
+    if (v.engine_error && !running) warn += (warn ? ' ' : '') + 'Last engine build failed: ' + v.engine_error;
+    $('versionWarn').textContent = warn;
+    $('versionWarn').classList.toggle('hidden', !warn);
+    $('rebuild').disabled = running || !ready || !v.can_build || !v.data || v.unbuildable;
+    $('rebuild').classList.toggle('primary', !!(ready && v.data && !v.matches && !v.unbuildable));
+    $('changeVersion').disabled = running || !ready || !!state.kfx_from_folder;
     $('playKfx').disabled = running || !ready || !s.engine;
     $('playOriginal').disabled = running || !ready || !s.engine;
     $('originalCaption').textContent = 'Original campaign only, no mods, own saves — on the KeeperFX engine';
@@ -112,6 +131,8 @@ const kr = {
       setProgress(100, p.task === 'workshop' ? p.label : 'Ready to play', '');
       if (p.task === 'workshop') { toast(p.label || 'Installed'); this.loaded.workshop = false; if (this.activeTab === 'workshop') loadWorkshop(); }
       if (p.task === 'update') $('updateBanner').classList.add('hidden');
+      if (p.task === 'version') { $('versionList').classList.add('hidden'); toast('Version installed. Rebuild the game for its engine.'); }
+      if (p.task === 'build') toast('Engine built for this version.');
     }
     if (!p.running) this.refresh();
     else if (this.st && !this.st.running) { this.st.running = true; this.applyState(this.st); }
@@ -302,7 +323,16 @@ function renderForms() {
       <h3>${esc(sec)}</h3>
       <div class="card">${sections[sec].map(field).join('')}</div>`).join('');
   });
+  // Play → Game version shows Advanced → "Keep downloaded archives" reversed.
+  const keep = schema.settings.find((d) => d.key === 'keep_downloads');
+  $('deletePatches').checked = !keep || keep.value !== '1';
 }
+
+$('deletePatches').onchange = () => {
+  const err = bridge ? bridge.set('keep_downloads', $('deletePatches').checked ? '0' : '1') : '';
+  if (err) toast(err);
+  renderForms();
+};
 
 function field(d) {
   const help = d.help ? `<small>${esc(d.help)}</small>` : '';
@@ -324,6 +354,7 @@ function onSettingChange(el) {
   const value = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
   const err = bridge ? bridge.set(key, value) : '';
   if (err) { toast(err); renderForms(); return; }
+  if (key === 'keep_downloads') $('deletePatches').checked = value !== '1';
   if (key === 'release_channel' || key === 'website_integration') { kr.loaded = {}; kr.refresh(); }
 }
 
@@ -350,6 +381,40 @@ $('prepare').onclick = () => {
 $('playOriginal').onclick = () => { const err = bridge ? bridge.play('original') : 'Preview'; if (err) toast(err); };
 $('playKfx').onclick = () => { const err = bridge ? bridge.play('keeperfx') : 'Preview'; if (err) toast(err); };
 $('updateNow').onclick = () => { const err = bridge ? bridge.update() : ''; if (err) toast(err); };
+
+function startedTask(err) {
+  if (err) { toast(err); return; }
+  kr.progress = { running: true };
+  setProgress(0, 'Starting…', '');
+  kr.refresh();
+}
+$('rebuild').onclick = () => startedTask(bridge ? bridge.rebuild() : 'Preview');
+
+// Version picker: the stable release or any alpha patch on keeperfx.net, newer or older.
+$('changeVersion').onclick = async () => {
+  const box = $('versionList');
+  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+  box.innerHTML = '<p class="empty">Loading versions…</p>';
+  box.classList.remove('hidden');
+  try {
+    const d = await kr.call((id) => bridge.versions(id));
+    const rows = [];
+    const row = (version, label, meta, current) => rows.push(
+      `<div class="vrow"><div class="body"><b>${esc(label)}</b><div class="meta">${esc(meta)}</div></div>`
+      + (current ? '<span class="badge">installed</span>' : `<button class="btn small" data-version="${esc(version)}">Install</button>`)
+      + '</div>');
+    const st = d.stable || {};
+    const mb = Math.round((Number(st.size_in_bytes) || 0) / 1048576);
+    row('', 'Stable ' + (st.version || ''), 'Full release' + (mb ? ' · ' + mb + ' MB download' : ''), d.current === st.version);
+    (d.alphas || []).forEach((a, i) => row(a.version, 'Alpha ' + a.version + (i === 0 ? ' (newest)' : ''),
+      (a.date || '').slice(0, 10) + ' · ' + a.size + ' · ' + a.title, d.current === a.version));
+    box.innerHTML = '<p class="hint">Saves and installed workshop items are kept. After changing the version, rebuild the game.</p>'
+      + rows.join('');
+    box.querySelectorAll('button[data-version]').forEach((b) => { b.onclick = () => startedTask(bridge.switchVersion(b.dataset.version)); });
+  } catch (e) {
+    box.innerHTML = `<p class="empty">Cannot load versions: ${esc(e.message)}</p>`;
+  }
+};
 $('checkUpdate').onclick = () => { const err = bridge ? bridge.update() : ''; if (err) toast(err); else { toast('Checking for updates…'); showTab('play'); } };
 $('resetSettings').onclick = () => { if (bridge) { bridge.resetSettings(); renderForms(); toast('Settings reset to defaults.'); } };
 $('modalClose').onclick = closeModal;
