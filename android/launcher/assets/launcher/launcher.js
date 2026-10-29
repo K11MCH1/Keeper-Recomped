@@ -61,7 +61,9 @@ const kr = {
     const fact = (k, v, cls) => facts.push(`<dt>${esc(k)}</dt><dd class="${cls || ''}">${esc(v)}</dd>`);
     if (state.imported_at) fact('Imported', (state.kfx_from_folder ? 'KeeperFX folder ' : 'Dungeon Keeper ') + (state.source_files || '') + ' files');
     const kv = state.kfx_version;
-    fact('KeeperFX', kv ? (kv === 'folder' ? 'from your folder' : kv) + (state.alpha_version ? ' + alpha ' + state.alpha_version : '') : 'not installed', kv ? 'ok' : '');
+    // Prepare & Build installs the newest alpha too, not only Update.
+    if (this.updateVersion && state.alpha_version === this.updateVersion) $('updateBanner').classList.add('hidden');
+    fact('KeeperFX', kv ?(kv === 'folder' ? 'from your folder' : kv) + (state.alpha_version ? ' + alpha ' + state.alpha_version : '') : 'not installed', kv ? 'ok' : '');
     fact('Channel', s.channel === 'ALPHA' ? 'Alpha patches' : 'Stable');
     if (state.last_error) fact('Last error', state.last_error, 'bad');
     $('facts').innerHTML = facts.join('');
@@ -141,6 +143,8 @@ const kr = {
   },
 
   onUpdate(u) {
+    this.updateVersion = u.version.replace(/^Alpha patch /, '');
+    if (this.st && (this.st.state || {}).alpha_version === this.updateVersion) return;
     $('updateText').textContent = u.version + ' is available' + (u.title ? ' — ' + u.title : '');
     $('updateBanner').classList.remove('hidden');
   },
