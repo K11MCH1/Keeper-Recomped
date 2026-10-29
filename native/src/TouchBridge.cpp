@@ -26,6 +26,7 @@
 #include "engine_lenses.h"
 #include "creature_control.h"
 #include "frontmenu_net.h"
+#include "observer.h"
 #include <jni.h>
 #include <atomic>
 #include <algorithm>
@@ -568,6 +569,9 @@ extern "C" void KfxAndroidApplyCamera(void) {
     float x=0,y=0,z=0,r=0;
     KfxAndroidCameraInputs(&x,&y,&z,&r);
     if (!local_state.camera.ready) return;
+    // A spectator's camera follows the watched player, which overwrote every touch pan and
+    // zoom, until keys or the mouse detach it (get_observer_inputs); touch detaches it too.
+    if ((x != 0 || y != 0 || z != 0 || r != 0) && observer_is_following_user()) detach_observer_camera();
     auto* player=get_my_player();
     int view=get_local_view_type(player);
     if (view != PVT_DungeonTop && view != PVT_MapScreen) return;
