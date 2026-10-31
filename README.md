@@ -82,7 +82,7 @@ flowchart LR
 ```
 
 - **Native engine.** KeeperFX is compiled with the Android NDK (r27, API 35). Its version-independent libraries (curl, OpenSSL, ENet, FFmpeg, OpenAL, Lua and others, from vcpkg) are linked once on the PC into a single library, `libkrdeps.so`, next to SDL3's own, so the phone only compiles the game itself.
-- **Small, portable changes.** The Android support is a list of small source "seams" (`#ifdef KFX_ANDROID`) for touch input, camera, presentation, file paths and TLS certificates. They are applied to whichever KeeperFX version you choose, so new KeeperFX alphas work without an app update.
+- **Small, portable changes.** The Android support is a list of small source "seams" (`#ifdef KFX_ANDROID`) for touch input, camera, presentation, file paths and TLS certificates. They are applied to whichever KeeperFX version you choose, so a new KeeperFX alpha usually builds without an app update. If KeeperFX rewrites code a seam hooks into, the phone refuses that version and keeps the engine you have until the app catches up.
 - **A compiler inside the APK.** Clang 21 and LLD (Termux builds) ship with the app. **Rebuild game** downloads the KeeperFX source for the installed version, applies the seams and compiles about 350 source files on the phone's own cores.
 - **Presentation.** KeeperFX renders its frames in software. SDL3 puts them on screen through Vulkan (or OpenGL ES) at the panel's highest refresh rate, up to 165 Hz.
 - **Touch bridge.** A gesture recognizer turns touches into the mouse, keyboard and camera input KeeperFX expects. While you possess a creature, a separate controller with its own on-screen overlay takes over.
@@ -118,13 +118,66 @@ The on-phone compiler comes from verified Termux packages (`build_apk.py --compi
 
 KeeperFX is pinned in [`third_party.lock.json`](third_party.lock.json) and patched by [`tools/patch-keeperfx.py`](tools/patch-keeperfx.py).
 
+## 🎮 Touch controls
+
+Your fingers stand in for the mouse: a **tap** is a left click and a **two-finger tap** is a right click, so everything works the way it does on PC. A **hold** means keeping a finger still for about half a second.
+
+**Basics**
+
+| Gesture | What it does |
+|---|---|
+| 👆 **Tap** | Left click: press a button, pick up a creature, build, cast, place a trap |
+| ✌️ **Two-finger tap** | Right click: slap, drop what the hand holds, cancel the selected room, spell or trap |
+| 👆 **Drag** on the dungeon | Moves the camera (two fingers moving together do too) |
+| 👆 **Drag** in a menu or the side panel | Drags with the button held, for sliders and scroll bars |
+| 🤏 **Pinch** | Zooms in and out |
+| 🔄 **Twist** two fingers | Rotates the view |
+| 👆 **Hold** | Holds the left button down until you lift; slide to move it while held |
+| ✌️ **Two-finger hold** | Holds the right button down until you lift |
+| 🖐️ **A third finger** | Cancels the gesture in progress |
+| ◀️ **Android Back** | Escape: the Options menu in a level, one step back in menus |
+
+**Running your dungeon**
+
+| To… | Do this |
+|---|---|
+| ⛏️ Mark a wall for digging | Tap it; tap a marked wall to unmark it. A single tap waits a moment in case a second one follows |
+| ⛏️ Mark a whole area | **Double-tap and hold**, slide to draw a rectangle, lift to mark it. Starting on a marked wall unmarks the rectangle instead |
+| ✋ Pick up creatures | Tap a creature. To grab several, **hold** a creature's icon or count in the creature panel: it keeps picking them up until you lift |
+| 🫳 Drop creatures | Two-finger tap drops one where your fingers are; a **two-finger hold** keeps dropping until you lift or the hand is empty |
+| 👋 Slap | Two-finger tap on a creature with an empty hand |
+| 🏗️ Build rooms, cast spells, place traps and doors | Tap the icon in the side panel, then tap the dungeon |
+| 🗺️ Use the map | Open it from the side panel. Drag to look around, tap a place to go there (the view straightens, as on PC), or two-finger tap to close it |
+
+**Possessing a creature**
+
+| Control | Where |
+|---|---|
+| 🕹️ **Move** | Put your thumb anywhere on the left half: a stick appears under it. Push a little to walk, past the faint ring to run (8 directions) |
+| 👀 **Look and turn** | Drag anywhere on the right half |
+| ⚔️ **Attack** | The claw button at the bottom right; it stays pressed while you hold it |
+| ✨ **Spells** | Tap them in the side panel; the arrow turns the page |
+| ❌ **Leave the creature** | The ✕ button at the top right |
+
+**Multiplayer**
+
+| | |
+|---|---|
+| 💬 **Lobby chat and text boxes** | Tap the chat line or a text box (such as Lobby Name) to bring up the keyboard; tap elsewhere in the lobby to hide it |
+| 👀 **Spectating** | Drag and pinch move your own camera; a two-finger tap goes back to the player you are watching |
+
+**Adjusting the controls** (in the launcher)
+
+- **Controls → Camera**: *Twist turns the view with your fingers* (turn it off to reverse the direction), the **rotate dead zone** (5–45°, default 8°) and the **pinch dead zone** (2–30%, default 12%). Raise a dead zone if zooming sometimes rotates the view, or if a twist starts a zoom.
+- **Gameplay → Enable Cheats** adds a **Cheats** button at the top right of the game: tap it for KeeperFX's cheat menu, long-press it for the creature abilities cheat menu. Typed console commands still need a keyboard.
+
 ## ✨ Not in KeeperFX: what this port adds
 
 | Area | Added for Android |
 |---|---|
 | 🚀 **Launcher** | Eight tabs (Play, Workshop, News, Graphics, Gameplay, Controls, Advanced, Credits); imports your game folder through Android's folder picker; downloads and installs KeeperFX stable and alpha patches; writes `keeperfx.cfg` from the settings |
 | 🛠️ **On-phone engine** | Rebuild game for the installed KeeperFX version; version picker (any alpha, or back to stable); a warning when game data and engine don't match; optional removal of downloaded patches |
-| 👆 **Touch controls** | Tap = click; tap & hold = hold; two-finger tap = right click / slap; drag pans; pinch zooms; twist rotates (direction and dead zones adjustable); double-tap & hold drags a dig box; hold a creature-panel count to keep grabbing; two-finger hold drops everything in the hand |
+| 👆 **Touch controls** | Tap = click; tap & hold = hold; two-finger tap = right click / slap; drag pans; pinch zooms; twist rotates (direction and dead zones adjustable); double-tap & hold drags a dig box; hold a creature-panel count to keep grabbing; two-finger hold drops everything in the hand ([all controls](#-touch-controls)) |
 | 🕹️ **Possession** | On-screen analog stick (8 directions, walk or run), drag to look, attack and exit buttons, tappable spell panel |
 | 🗺️ **Camera** | Map keeps your zoom; tapping a place straightens the view like on PC |
 | 👀 **Spectating** | Touch moves the spectator camera; two-finger tap returns to the watched player |
